@@ -93,6 +93,7 @@ bool PhaseIITreeMaker::Initialise(std::string configfile, DataModel &data){
       fPhaseIITankClusterTree->Branch("hitDetID", &fHitDetID);
       fPhaseIITankClusterTree->Branch("hitChankey",&fHitChankey);
       fPhaseIITankClusterTree->Branch("hitChankeyMC",&fHitChankeyMC);
+      fPhaseIITankClusterTree->Branch("hitPDG", &fHitPDG);   	
     }
     //SiPM Pulse Info; load into both trees for now...
     if(SiPMPulseInfo_fill){
@@ -299,6 +300,7 @@ bool PhaseIITreeMaker::Initialise(std::string configfile, DataModel &data){
       fPhaseIITrigTree->Branch("hitDetID", &fHitDetID);
       fPhaseIITrigTree->Branch("hitChankey", &fHitChankey);
       fPhaseIITrigTree->Branch("hitChankeyMC",&fHitChankeyMC);
+      //      fPhaseIITrigTree->Branch("hitPDG", &fHitPDG);
     }
 
     if(MRDHitInfo_fill){
@@ -1208,6 +1210,7 @@ void PhaseIITreeMaker::ResetVariables() {
     fHitDetID.clear();
     fHitChankey.clear();
     fHitChankeyMC.clear();
+    fHitPDG.clear();
   }
   
   if (muonTruthRecoDiff_fill){ 
@@ -1574,9 +1577,13 @@ int PhaseIITreeMaker::LoadMRDTrackReco(int SubEventID) {
 void PhaseIITreeMaker::LoadAllTankHits(bool IsData) {
   std::map<unsigned long, std::vector<Hit>>* Hits = nullptr;
   std::map<unsigned long, std::vector<MCHit>>* MCHits = nullptr;
+  std::vector<MCParticle>* MCParticles = nullptr;
   bool got_hits = false;
   if (IsData) got_hits = m_data->Stores["ANNIEEvent"]->Get("Hits", Hits);
-  else got_hits = m_data->Stores["ANNIEEvent"]->Get("MCHits",MCHits);
+  else {
+	got_hits = m_data->Stores["ANNIEEvent"]->Get("MCHits",MCHits);
+        m_data->Stores["ANNIEEvent"]->Get("MCParticles", MCParticles);
+  	}		
   if (!got_hits){
     std::cout << "No Hits store in ANNIEEvent. Continuing to build tree " << std::endl;
     return;
@@ -1631,7 +1638,8 @@ void PhaseIITreeMaker::LoadAllTankHits(bool IsData) {
           fHitChankey.push_back(channel_key);
           fHitChankeyMC.push_back(channel_key);
           fHitType.push_back(RecoDigit::PMT8inch); // 0 For PMTs
-        }
+          fHitPDG.push_back(-9999);
+	}
       } else {
         std::vector<MCHit> ThisPMTHits = it_tank_mc->second;
         fNHits+=ThisPMTHits.size();
@@ -1648,6 +1656,30 @@ void PhaseIITreeMaker::LoadAllTankHits(bool IsData) {
           fHitChankey.push_back(channel_key_data);
           fHitChankeyMC.push_back(channel_key);
           fHitType.push_back(RecoDigit::PMT8inch); // 0 For PMTs
+	  int pdg_code = -9999;
+          const std::vector<int>* parents = ahit.GetParents();
+	  if (!MCParticles){if (fNHits < 10) std::cout << "DEBUG FAIL: MCParticles pointer is NULL!" << std::endl; }
+	  else if (!parents || parents->size() == 0) { if (fNHits < 5) std::cout << "DEBUG INFO: Hit has no parents (Dark Noise)" << std::endl; }
+	  else {
+	    //if (MCParticles && parents && parents->size() > 0){
+	    int target_id = parents->at(0);
+	    bool match_found = false;
+	    for (int k = 0; k < MCParticles->size(); k++){
+	      MCParticle& part = MCParticles->at(k);
+	      if (part.GetParticleID() == target_id){
+		 pdg_code = part.GetPdgCode();
+		 std::cout << "SUCCESS! Hit Parent ID " << target_id  << " matched PDG " << pdg_code << std::endl;
+		 match_found = true;
+		 break;
+		 
+	      }
+	    }
+	    if (!match_found && fNHits < 20) {
+	      std::cout << "DEBUG FAIL: Hit Parent ID " << target_id 
+			<< " not found in MCParticles list (Size: " << MCParticles->size() << ")" << std::endl;
+	    }
+	  }
+	  fHitPDG.push_back(pdg_code);
         }
       }
     }

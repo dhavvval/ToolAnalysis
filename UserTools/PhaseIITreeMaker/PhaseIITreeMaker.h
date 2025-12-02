@@ -89,6 +89,7 @@ class PhaseIITreeMaker: public Tool {
   std::map<double,std::vector<Hit>>* m_all_clusters = nullptr;  
   std::map<double,std::vector<MCHit>>* m_all_clusters_MC = nullptr;  
   std::map<double,std::vector<unsigned long>>* m_all_clusters_detkeys = nullptr;  
+  std::vector<int> fHitPDG;
   Geometry *geom = nullptr;
 
   /// \brief Branch variables
