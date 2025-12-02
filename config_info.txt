@@ -1,0 +1,232 @@
+git commit hash saved in Makefile during compile time
+218c921-dirty
+dirty: The working tree has local modification. This must not necessarliy impact the ToolChain which has been run just now.
+
+------------------------------------------------
+
+./configfiles/EventBuilderV2_AmBe/ToolsConfig
+LoadGeometry LoadGeometry ./configfiles/EventBuilderV2_AmBe/LoadGeometryConfig
+EBLoadRaw EBLoadRaw ./configfiles/EventBuilderV2_AmBe/EBLoadRawConfig
+
+PMTDataDecoder PMTDataDecoder ./configfiles/EventBuilderV2_AmBe/PMTDataDecoderConfig
+#MRDDataDecoder MRDDataDecoder ./configfiles/EventBuilderV2_AmBe/MRDDataDecoderConfig
+TriggerDataDecoder TriggerDataDecoder ./configfiles/EventBuilderV2_AmBe/TriggerDataDecoderConfig
+#LAPPDLoadStore LAPPDLoadStore ./configfiles/EventBuilderV2_AmBe/LAPPDLoadStoreConfig
+
+PhaseIIADCCalibrator PhaseIIADCCalibrator ./configfiles/EventBuilderV2_AmBe/PhaseIIADCCalibratorConfig
+PhaseIIADCHitFinder PhaseIIADCHitFinder ./configfiles/EventBuilderV2_AmBe/PhaseIIADCHitFinderConfig
+
+EBTriggerGrouper EBTriggerGrouper ./configfiles/EventBuilderV2_AmBe/EBTriggerGrouperConfig
+EBPMT EBPMT ./configfiles/EventBuilderV2_AmBe/EBPMTConfig
+#EBMRD EBMRD ./configfiles/EventBuilderV2_AmBe/EBMRDConfig
+#EBLAPPD EBLAPPD ./configfiles/EventBuilderV2_AmBe/EBLAPPDConfig
+
+SaveConfigInfo SaveConfigInfo ./configfiles/EventBuilderV2_AmBe/SaveConfigInfoConfig
+
+EBSaver EBSaver ./configfiles/EventBuilderV2_AmBe/EBSaverConfig
+
+
+
+------------------------------------------------
+
+./configfiles/EventBuilderV2_AmBe/LoadGeometryConfig
+verbosity 0
+LAPPDChannelCount 60
+FACCMRDGeoFile ./configfiles/LoadGeometry/FullMRDGeometry_09_29_20.csv 
+#FACCMRDGeoFile ./configfiles/LoadGeometry/FullMRDGeometry.csv
+DetectorGeoFile ./configfiles/LoadGeometry/DetectorGeometrySpecs.csv
+LAPPDGeoFile ./configfiles/LoadGeometry/LAPPDGeometry.csv
+TankPMTGeoFile ./configfiles/LoadGeometry/FullTankPMTGeometry.csv
+TankPMTGainFile ./configfiles/LoadGeometry/ChannelSPEGains2023.csv
+TankPMTTimingOffsetFile ./configfiles/LoadGeometry/TankPMTTimingOffsets.csv
+AuxiliaryChannelFile ./configfiles/LoadGeometry/AuxChannels.csv
+
+------------------------------------------------
+
+./configfiles/EventBuilderV2_AmBe/EBLoadRawConfig
+verbosityEBLoadRaw 2
+ReadTriggerOverlap 1
+
+InputFile ./configfiles/EventBuilderV2_AmBe/my_files.txt
+
+LoadPMT 1
+LoadMRD 0
+LoadCTC 1
+LoadLAPPD 0
+
+
+------------------------------------------------
+
+./configfiles/EventBuilderV2_AmBe/EBLoadRawConfig
+verbosityEBLoadRaw 2
+ReadTriggerOverlap 1
+
+InputFile ./configfiles/EventBuilderV2_AmBe/my_files.txt
+
+LoadPMT 1
+LoadMRD 0
+LoadCTC 1
+LoadLAPPD 0
+
+
+------------------------------------------------
+
+./configfiles/EventBuilderV2_AmBe/PMTDataDecoderConfig
+verbosity 1
+ADCCountsToBuildWaves 0
+Mode Offline
+OffsetVME03 0
+OffsetVME01 0
+
+------------------------------------------------
+
+./configfiles/EventBuilderV2_AmBe/TriggerDataDecoderConfig
+verbosity 0
+StoreTrigOverlap 0
+ReadTrigOverlap 0
+
+------------------------------------------------
+
+./configfiles/EventBuilderV2_AmBe/PhaseIIADCCalibratorConfig
+# PhaseIIADCCalibrator config file
+
+verbosity 0
+
+BaselineEstimationType ze3ra_multi
+NumBaselineSamples 15
+NumSubWaveforms 10
+
+SamplesPerBaselineEstimate 2000
+BaselineUncertaintyTolerance 2
+PCritical 0.01
+MakeCalLEDWaveforms 0
+
+EventBuilding 1
+ExecutesPerBuild 10
+
+------------------------------------------------
+
+./configfiles/EventBuilderV2_AmBe/PhaseIIADCHitFinderConfig
+verbosity 0
+
+UseLEDWaveforms 0
+
+PulseFindingApproach threshold
+PulseWindowType Fixed_2023_Gains
+DefaultADCThreshold 7
+DefaultThresholdType relative
+
+EventBuilding 1
+
+------------------------------------------------
+
+./configfiles/EventBuilderV2_AmBe/PhaseIIADCHitFinderConfig
+verbosity 0
+
+UseLEDWaveforms 0
+
+PulseFindingApproach threshold
+PulseWindowType Fixed_2023_Gains
+DefaultADCThreshold 7
+DefaultThresholdType relative
+
+EventBuilding 1
+
+------------------------------------------------
+
+./configfiles/EventBuilderV2_AmBe/EBTriggerGrouperConfig
+verbosityEBTG 0
+GroupMode beam
+GroupTolerance 3000000
+GroupTrigWord 14 //undelayed beam
+
+groupBeam 0
+BeamTolerance 25000000
+
+groupCosmic 0
+CosmicTriggerMain 36
+
+groupLaser 0
+LaserTolerance 10000
+
+groupLED 0
+#LEDTriggerMain 31
+#LEDTolerance 10000
+
+groupAmBe 1
+AmBeTolerance 10000 # 10us for testing
+AmBeTriggerMain 11
+
+groupPPS 0
+
+groupNuMI 0
+
+maxNumAllowedInBuffer 20000
+
+
+------------------------------------------------
+
+./configfiles/EventBuilderV2_AmBe/EBPMTConfig
+verbosityEBPMT 0
+matchTargetTrigger 46
+matchTolerance_ns 1000
+matchToAllTriggers 1
+
+------------------------------------------------
+
+./configfiles/EventBuilderV2_AmBe/SaveConfigInfoConfig
+verbosity 5
+OutFileName config_info.txt
+FullDepth 0
+
+------------------------------------------------
+
+./configfiles/EventBuilderV2_AmBe/SaveConfigInfoConfig
+verbosity 5
+OutFileName config_info.txt
+FullDepth 0
+
+------------------------------------------------
+
+./configfiles/EventBuilderV2_AmBe/EBSaverConfig
+verbosityEBSaver 1
+
+savePMT 1
+saveMRD 0
+saveCTC 1
+saveLAPPD 0
+saveRunInfo 1
+saveBeamInfo 0
+
+beamInfoFileName beamfetcher_tree.root
+
+------------------------------------------------
+
+./configfiles/EventBuilderV2_AmBe/EBSaverConfig
+verbosityEBSaver 1
+
+savePMT 1
+saveMRD 0
+saveCTC 1
+saveLAPPD 0
+saveRunInfo 1
+saveBeamInfo 0
+
+beamInfoFileName beamfetcher_tree.root
+
+------------------------------------------------
+
+./configfiles/EventBuilderV2_AmBe/EBSaverConfig
+verbosityEBSaver 1
+
+savePMT 1
+saveMRD 0
+saveCTC 1
+saveLAPPD 0
+saveRunInfo 1
+saveBeamInfo 0
+
+beamInfoFileName beamfetcher_tree.root
+
+------------------------------------------------
+

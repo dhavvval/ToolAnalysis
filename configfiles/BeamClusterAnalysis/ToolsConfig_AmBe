@@ -1,0 +1,6 @@
+myLoadANNIEEvent LoadANNIEEvent ./configfiles/BeamClusterAnalysis/LoadANNIEEventConfig
+myLoadGeometry LoadGeometry ./configfiles/LoadGeometry/LoadGeometryConfig
+myClusterFinder ClusterFinder ./configfiles/BeamClusterAnalysis/ClusterFinderConfig
+myClusterClassifiers ClusterClassifiers ./configfiles/BeamClusterAnalysis/ClusterClassifiersConfig
+myEventSelector EventSelector ./configfiles/BeamClusterAnalysis/EventSelectorConfig
+ANNIEEventTreeMaker ANNIEEventTreeMaker ./configfiles/BeamClusterAnalysis/ANNIEEventTreeMakerConfig

@@ -1,6 +1,6 @@
 verbose 0
 
-OutputFile BeamRunTree.root
+OutputFile BeamRun_4139_default.root
 TankClusterProcessing 1
 MRDClusterProcessing 1
 TriggerProcessing 1
@@ -16,5 +16,5 @@ muonTruthRecoDiff_fill 0
 IsData 1
 HasGenie 0
 
-LAPPDData_fill 1
-LAPPDReco_fill 1
+LAPPDData_fill 0
+LAPPDReco_fill 0

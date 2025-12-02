@@ -1,4 +1,6 @@
-verbosityEBTG 5
+verbosityEBTG 0
+
+# beam triggers are always there, even in AmBe runs. We know they are meaningless to group beam trigger when we know there is 100% no beam, but again redundancy is not bad if it's not harmful
 GroupMode beam
 GroupTolerance 3000000
 GroupTrigWord 14 //undelayed beam

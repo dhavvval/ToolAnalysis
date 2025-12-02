@@ -15,8 +15,8 @@ TankClusterProcessing 1
 MRDClusterProcessing 1
 TriggerProcessing 1
 TankHitInfo_fill 1
-MRDHitInfo_fill 1
-MRDReco_fill 1
+MRDHitInfo_fill 0
+MRDReco_fill 0
 SiPMPulseInfo_fill 0
 fillCleanEventsOnly 0
 MCTruth_fill 1

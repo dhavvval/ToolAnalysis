@@ -1,0 +1,31 @@
+ANNIEEventTreeMakerVerbosity 0
+
+fillAllTriggers 1
+fill_singleTrigger 0
+fill_singleTriggerWord 0
+fillLAPPDEventsOnly 0
+TankCluster_fill 1
+cluster_TankHitInfo_fill 1
+
+OutputFile /pnfs/annie/persistent/users/doran/datasets/AmBe_BeamCluster/AmBe_4665_v3.ntuple.root
+TankClusterProcessing 1
+MRDClusterProcessing 0
+TriggerProcessing 1
+TankHitInfo_fill 1
+MRDHitInfo_fill 0
+MRDReco_fill 0
+SiPMPulseInfo_fill 0
+fillCleanEventsOnly 0
+MCTruth_fill 0
+Reco_fill 0
+TankReco_fill 0
+RecoDebug_fill 0
+muonTruthRecoDiff_fill 0
+isData 1
+HasGenie 0
+LAPPD_MC_fill 0
+
+LAPPDData_fill 0
+LAPPDReco_fill 0
+RWMBRF_fill 0
+LAPPD_PPS_fill 0

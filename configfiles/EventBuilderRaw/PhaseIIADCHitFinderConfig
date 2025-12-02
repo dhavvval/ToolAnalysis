@@ -3,7 +3,7 @@ verbosity 0
 UseLEDWaveforms 0
 
 PulseFindingApproach threshold
-PulseWindowType dynamic
+PulseWindowType 2023_Fixed_Gains
 DefaultADCThreshold 7
 DefaultThresholdType relative
 

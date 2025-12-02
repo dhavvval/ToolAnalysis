@@ -1,5 +1,5 @@
 verbosity 1
-BuildType TankAndMRDAndCTC
+BuildType TankAndCTC
 #BuildType CTC
 Mode FileList
 InputFile ./configfiles/EventBuilder/my_files.txt

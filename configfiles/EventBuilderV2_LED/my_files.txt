@@ -1,0 +1,3 @@
+/pnfs/annie/persistent/raw/raw/5151/RAWDataR5151S0p3
+/pnfs/annie/persistent/raw/raw/5151/RAWDataR5151S0p4
+/pnfs/annie/persistent/raw/raw/5151/RAWDataR5151S0p5

@@ -1,1 +1,3 @@
-/pnfs/annie/persistent/processed/processed_EBV2_LAPPDFiltered/R3832/FilteredAllLAPPDData_3832_0_49
+/pnfs/annie/scratch/users/doran/output/5101/ProcessedData_PMTMRDLAPPD_R5101S0p0
+/pnfs/annie/scratch/users/doran/output/5101/ProcessedData_PMTMRDLAPPD_R5101S0p1
+/pnfs/annie/scratch/users/doran/output/5101/ProcessedData_PMTMRDLAPPD_R5101S0p2

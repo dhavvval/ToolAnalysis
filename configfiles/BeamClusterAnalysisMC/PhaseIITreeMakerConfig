@@ -1,19 +1,20 @@
 verbose 5
 
 #OutputFile MCBeam_Gst_new_Run9000_NoSplitSubTriggers.ntuple.root
-OutputFile MCBeam_Gst_G1810a0211a_ntuple.root
+#OutputFile /pnfs/annie/persistent/users/dajana/WCSim_files/AmBe_BeamCluster/AmBe_Neutron_port5_zminus50.root
+OutputFile MC_pdg_test.root
 
 TankClusterProcessing 1
-MRDClusterProcessing 1
+MRDClusterProcessing 0
 TriggerProcessing 1
 TankHitInfo_fill 1
-MRDHitInfo_fill 1
+MRDHitInfo_fill 0
 MRDReco_fill 1
 SiPMPulseInfo_fill 0
 fillCleanEventsOnly 0
 MCTruth_fill 1
-Reco_fill 0
-TankReco_fill 0
+Reco_fill 1
+TankReco_fill 1
 RecoDebug_fill 0
 muonTruthRecoDiff_fill 0
 IsData 0
