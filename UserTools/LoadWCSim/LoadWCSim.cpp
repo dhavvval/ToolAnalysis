@@ -1109,7 +1109,15 @@ void LoadWCSim::LoadMCParticles(WCSimRootTrigger* firstTrig)
 		Log(logmessage, v_message, verbosity);	
 
 		auto* nextTrack = (WCSimRootTrack*)aTrigTank->GetTracks()->At(trackIdx);
-					
+		std::cout << "DEBUGGING: Track: " << trackIdx
+			  << "| Track Flag: " << nextTrack->GetFlag() 
+              << " | ID: " << nextTrack->GetId()
+              << " | PDG: " << nextTrack->GetIpnu() 
+              << " | ParentID: " << nextTrack->GetPrimaryParentID() 
+              << " | DirectParentID: " << nextTrack->GetDirectParentID() 
+              << " | Energy: " << nextTrack->GetE() 
+              << " | Dir: (" << nextTrack->GetDir(0) << ", " << nextTrack->GetDir(1) << ", " << nextTrack->GetDir(2) << ")"
+              << std::endl;
 		tracktype startStopType = tracktype::UNDEFINED;
 
 		// Extract the neutrino information
@@ -1128,8 +1136,10 @@ void LoadWCSim::LoadMCParticles(WCSimRootTrigger* firstTrig)
 							  length, startStopType,
 							  nextTrack->GetId(),
 							  nextTrack->GetParenttype(),
+                nextTrack->GetDirectParentID(),
 							  nextTrack->GetFlag(),
 							  trigIdx);
+      //std::cout <<"Direction"<<(nextTrack->GetDir(0), nextTrack->GetDir(1), nextTrack->GetDir(2)) << " track ipnu (PDG code): " << nextTrack->GetIpnu() << ", energy: " << nextTrack->GetE() << "PrimaryParentID" <<nextTrack->GetParentID() << ", DirectParentID: " << nextTrack->GetDirectParentID() << std::endl;
 							
 		  // Save the neutrino own particle in the store
 		  m_data->Stores["ANNIEEvent"]->Set("NeutrinoParticle", neutrino);
@@ -1151,6 +1161,7 @@ void LoadWCSim::LoadMCParticles(WCSimRootTrigger* firstTrig)
 		logmessage = "LoadWCSim::LoadMCParticles: Loaded particle with PDG: " + std::to_string(nextTrack->GetIpnu());
 		logmessage += ", stop time: " + std::to_string(stopTime);
 		logmessage += ", end process: " + nextTrack->GetEndProcess();
+    logmessage += ", DirectParentID: " + std::to_string(nextTrack->GetDirectParentID());
 		Log(logmessage, v_debug, verbosity);
 
 		// Record neutron primary/secondary
@@ -1163,6 +1174,7 @@ void LoadWCSim::LoadMCParticles(WCSimRootTrigger* firstTrig)
 								length, startStopType,
 								nextTrack->GetId(),
 								nextTrack->GetParenttype(),
+                nextTrack->GetDirectParentID(),
 								nextTrack->GetFlag(),
 								trigIdx);
 
@@ -1174,14 +1186,15 @@ void LoadWCSim::LoadMCParticles(WCSimRootTrigger* firstTrig)
 		exitPoint.UnitToMeter();
 		thisparticle.SetTankExitPoint(exitPoint);
 
-		// Check if this is a primary muon. Only record the first one
-		if (nextTrack->GetIpnu() == 13 && nextTrack->GetParenttype() == 0 &&
+		// Check if this is a primary muon. Only record the first one 
+		if (nextTrack->GetIpnu() == 13 && nextTrack->GetParenttype() == 0 && //I think muon would always have directparent as muon and not any other particle? (DJA)
 			nextTrack->GetFlag() == 0  && primaryMuonIndex < 0 ) 
 		  primaryMuonIndex = MCParticles->size();
 
 		// Some print outs for "interesting" particles
 		if (abs(nextTrack->GetIpnu()) == 13 || abs(nextTrack->GetIpnu()) == 211 || nextTrack->GetIpnu() == 111){
 		  logmessage = "LoadWCSim::LoadMCParticles: Found " + std::to_string(nextTrack->GetIpnu());
+      logmessage += ", with DirectParentID: " + std::to_string(nextTrack->GetDirectParentID());
 		  logmessage += " with flag: " + std::to_string(nextTrack->GetFlag());
 		  logmessage += ", parent type " + std::to_string(nextTrack->GetParenttype());
 		  logmessage += ", Id " + std::to_string(nextTrack->GetId());
@@ -1384,7 +1397,8 @@ bool LoadWCSim::LoadHits(WCSimRootTrigger* thisTrig, WCSimRootTrigger* firstTrig
     Log(logmessage, v_debug, verbosity);
     
     // Create the hit and put it in the correct map
-    MCHit nextHit(key, digiTime, digiQ, GetHitParentIdxs(digiHit, firstTrig));
+    std::pair<std::vector<int>, std::vector<int>> hitsIDs = GetHitParentIdxs(digiHit, firstTrig);
+    MCHit nextHit(key, digiTime, digiQ, hitsIDs.first, hitsIDs.second);
 
     if (system == "Tank") {
       if (MCHits->count(key) == 0) MCHits->emplace(key, std::vector<MCHit>{nextHit});
@@ -1458,7 +1472,11 @@ void LoadWCSim::MakeParticleToPmtMap(WCSimRootTrigger* thistrig,
       auto* thehittimeobject = (WCSimRootCherenkovHitTime*)(firstTrig->GetCherenkovHitTimes()->At(thephotonsid));
 
       // get the parent ID from the CherenkovHitTime
-      Int_t parentID = (thehittimeobject) ? thehittimeobject->GetParentID() : -1;
+
+      //Int_t parentID = (thehittimeobject) ? thehittimeobject->GetParentID() : -1; 
+      //I have changed GetParentID to GetDirectParentID in WCSimRootCherenkovHitTime, so this may need to be updated if we want direct parent IDs instead of primary parent IDs (DJA)
+      Int_t parentID = (thehittimeobject) ? thehittimeobject->GetPrimaryParentID() : -1;
+      Int_t directparentID = (thehittimeobject) ? thehittimeobject->GetDirectParentID() : -1;
 
       // We'll want a map of particle ID to channel keys, so convert WCSim TubeID to channelkey
       int chankey = tubeid_to_channelkey.at(tubeID);
@@ -1487,9 +1505,11 @@ void LoadWCSim::MakeParticleToPmtMap(WCSimRootTrigger* thistrig,
 
 ////////////////////////////////////////////////////////////////////////////////
 // Get the ID of the primary MCParticle(s) that produced this digi. hit
-std::vector<int> LoadWCSim::GetHitParentIDs(WCSimRootCherenkovDigiHit* digiHit, WCSimRootTrigger* firstTrig)
+//Instead now it stores the direct parent IDs. What do we need primary MCParticles infor too? (DJA)
+std::pair<std::vector<int>, std::vector<int>> LoadWCSim::GetHitParentIDs(WCSimRootCherenkovDigiHit* digiHit, WCSimRootTrigger* firstTrig)
 {
   std::vector<int> parentIDs; // a hit could technically have more than one contrbuting particle
+  std::vector<int> directParentIDs; 
 	
   // loop over the photons in this digit
   std::vector<int> photonIdxs = digiHit->GetPhotonIds();
@@ -1507,27 +1527,37 @@ std::vector<int> LoadWCSim::GetHitParentIDs(WCSimRootCherenkovDigiHit* digiHit, 
       logmessage = "LoadWCSim::GetHitParentIDs: HitTime object is NULL!!";
       Log(logmessage, v_error, verbosity);
     }
-    else 
-      parentIDs.push_back(theHitTimeObject->GetParentID());
+    else {
+        parentIDs.push_back(theHitTimeObject->GetPrimaryParentID());
+        directParentIDs.push_back(theHitTimeObject->GetDirectParentID());
+    }
+
   
   }// end loop over photons  
-  return parentIDs;
+  return std::make_pair(parentIDs, directParentIDs);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 // Get the index within the the MCParticle vector of the primaries that produced this digi. hit
-std::vector<int> LoadWCSim::GetHitParentIdxs(WCSimRootCherenkovDigiHit* digiHit, WCSimRootTrigger* firstTrig)
+std::pair<std::vector<int>, std::vector<int>> LoadWCSim::GetHitParentIdxs(WCSimRootCherenkovDigiHit* digiHit, WCSimRootTrigger* firstTrig)
 {
-  std::vector<int> parentIDs = GetHitParentIDs(digiHit, firstTrig);
+  std::pair<std::vector<int>, std::vector<int>> bothIDs = GetHitParentIDs(digiHit, firstTrig);
+  std::vector<int> parentIDs = bothIDs.first;
+  std::vector<int> directParentIDs = bothIDs.second;
   std::vector<int> parentIdxs;
+  std::vector<int> directParentIdxs;
 
   // Check if the parent was recorded, and if so then translate ID to index
   for (int parentID : parentIDs) {
     if (trackid_to_mcparticleindex->count(parentID))
       parentIdxs.push_back(trackid_to_mcparticleindex->at(parentID));
   }
+  for (int directParentID : directParentIDs) {
+    if (trackid_to_mcparticleindex->count(directParentID))
+      directParentIdxs.push_back(trackid_to_mcparticleindex->at(directParentID));
+  }
 
-  return parentIdxs;
+  return std::make_pair(parentIdxs, directParentIdxs);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
