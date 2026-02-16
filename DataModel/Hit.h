@@ -55,14 +55,21 @@ class MCHit : public Hit {
 	// XXX ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ XXX
 	
 	friend class boost::serialization::access;
+	//Temprory test purpose: I may remove the DirectParents vector 
+	//and just use the Parents vector to store the direct parents to the hit, 
+	//as the indirect parents are not very useful and the direct parent indices are more useful for analysis. 
+	//I will keep the DirectParents vector for now until I decide whether to remove it or not.
 	
 	public:
-	MCHit() : Hit(), Parents(std::vector<int>{}) {serialise=true;}
-	MCHit(int tubeid, double thetime, double thecharge, std::vector<int> theparents) : Hit(tubeid, thetime, thecharge), Parents(theparents) {serialise=true;}
+	MCHit() : Hit(), Parents(std::vector<int>{}), DirectParents(std::vector<int>{}) {serialise=true;}
+	MCHit(int tubeid, double thetime, double thecharge, std::vector<int> theparents, std::vector<int> thedirectparents) : Hit(tubeid, thetime, thecharge), Parents(theparents), DirectParents(thedirectparents) {serialise=true;}
 	virtual ~MCHit(){};
 	
 	const std::vector<int>* GetParents() const { return &Parents; }
 	void SetParents(std::vector<int> parentsin){ Parents = parentsin; }
+
+	const std::vector<int>* GetDirectParents() const{return &DirectParents;}
+	void SetDirectParents(std::vector<int> directparentsin){ DirectParents = directparentsin; }
 	
 	bool Print(){
 	  std::cout<<"TubeId : "<<TubeId<<endl;
@@ -78,12 +85,21 @@ class MCHit : public Hit {
 		} else {
 			std::cout<<"No recorded parents"<<endl;
 		}
+		if(DirectParents.size()){    
+			for(int parenti=0; parenti<(int)DirectParents.size(); ++parenti){
+				std::cout<<DirectParents.at(parenti);
+				if((parenti+1)<(int)DirectParents.size()) std::cout<<", ";
+			}
+			std::cout<<"}"<<endl;
+		} else {
+			std::cout<<"No recorded direct parents"<<endl;
+		}
 		return true;
 	}
 	
 	protected:
 	std::vector<int> Parents;
-	
+	std::vector<int> DirectParents;
 	template<class Archive> void serialize(Archive & ar, const unsigned int version){
 		if(serialise){
 			ar & TubeId;
