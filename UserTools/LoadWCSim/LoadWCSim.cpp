@@ -1388,7 +1388,8 @@ bool LoadWCSim::LoadHits(WCSimRootTrigger* thisTrig, WCSimRootTrigger* firstTrig
     Log(logmessage, v_debug, verbosity);
     
     // Create the hit and put it in the correct map
-    MCHit nextHit(key, digiTime, digiQ, GetHitParentIdxs(digiHit, firstTrig));
+    std::pair<std::vector<int>, std::vector<int>> hitsIDs = GetHitParentIdxs(digiHit, firstTrig);
+    MCHit nextHit(key, digiTime, digiQ, hitsIDs.first, hitsIDs.second);
 
     if (system == "Tank") {
       if (MCHits->count(key) == 0) MCHits->emplace(key, std::vector<MCHit>{nextHit});
@@ -1465,7 +1466,8 @@ void LoadWCSim::MakeParticleToPmtMap(WCSimRootTrigger* thistrig,
 
       //Int_t parentID = (thehittimeobject) ? thehittimeobject->GetParentID() : -1; 
       //I have changed GetParentID to GetDirectParentID in WCSimRootCherenkovHitTime, so this may need to be updated if we want direct parent IDs instead of primary parent IDs (DJA)
-      Int_t parentID = (thehittimeobject) ? thehittimeobject->GetDirectParentID() : -1;
+      Int_t parentID = (thehittimeobject) ? thehittimeobject->PrimaryParentID() : -1;
+      Int_t directparentID = (thehittimeobject) ? thehittimeobject->GetDirectParentID() : -1;
 
       // We'll want a map of particle ID to channel keys, so convert WCSim TubeID to channelkey
       int chankey = tubeid_to_channelkey.at(tubeID);
@@ -1495,9 +1497,10 @@ void LoadWCSim::MakeParticleToPmtMap(WCSimRootTrigger* thistrig,
 ////////////////////////////////////////////////////////////////////////////////
 // Get the ID of the primary MCParticle(s) that produced this digi. hit
 //Instead now it stores the direct parent IDs. What do we need primary MCParticles infor too? (DJA)
-std::vector<int> LoadWCSim::GetHitParentIDs(WCSimRootCherenkovDigiHit* digiHit, WCSimRootTrigger* firstTrig)
+std::pair<std::vector<int>, std::vector<int>> LoadWCSim::GetHitParentIDs(WCSimRootCherenkovDigiHit* digiHit, WCSimRootTrigger* firstTrig)
 {
   std::vector<int> parentIDs; // a hit could technically have more than one contrbuting particle
+  std::vector<int> directParentIDs; 
 	
   // loop over the photons in this digit
   std::vector<int> photonIdxs = digiHit->GetPhotonIds();
@@ -1515,27 +1518,37 @@ std::vector<int> LoadWCSim::GetHitParentIDs(WCSimRootCherenkovDigiHit* digiHit, 
       logmessage = "LoadWCSim::GetHitParentIDs: HitTime object is NULL!!";
       Log(logmessage, v_error, verbosity);
     }
-    else 
-      parentIDs.push_back(theHitTimeObject->GetParentID());
+    else {
+        parentIDs.push_back(theHitTimeObject->GetParentID());
+        directParentIDs.push_back(theHitTimeObject->GetDirectParentID());
+    }
+
   
   }// end loop over photons  
-  return parentIDs;
+  return std::make_pair(parentIDs, directParentIDs);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 // Get the index within the the MCParticle vector of the primaries that produced this digi. hit
-std::vector<int> LoadWCSim::GetHitParentIdxs(WCSimRootCherenkovDigiHit* digiHit, WCSimRootTrigger* firstTrig)
+std::pair<std::vector<int>, std::vector<int>> LoadWCSim::GetHitParentIdxs(WCSimRootCherenkovDigiHit* digiHit, WCSimRootTrigger* firstTrig)
 {
-  std::vector<int> parentIDs = GetHitParentIDs(digiHit, firstTrig);
+  std::pair<std::vector<int>, std::vector<int>> bothIDs = GetHitParentIDs(digiHit, firstTrig);
+  std::vector<int> parentIDs = bothIDs.first;
+  std::vector<int> directParentIDs = bothIDs.second;
   std::vector<int> parentIdxs;
+  std::vector<int> directParentIdxs;
 
   // Check if the parent was recorded, and if so then translate ID to index
   for (int parentID : parentIDs) {
     if (trackid_to_mcparticleindex->count(parentID))
       parentIdxs.push_back(trackid_to_mcparticleindex->at(parentID));
   }
+  for (int directParentID : directParentIDs) {
+    if (trackid_to_mcparticleindex->count(directParentID))
+      directParentIdxs.push_back(trackid_to_mcparticleindex->at(directParentID));
+  }
 
-  return parentIdxs;
+  return std::make_pair(parentIdxs, directParentIdxs);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
