@@ -1466,7 +1466,7 @@ void LoadWCSim::MakeParticleToPmtMap(WCSimRootTrigger* thistrig,
 
       //Int_t parentID = (thehittimeobject) ? thehittimeobject->GetParentID() : -1; 
       //I have changed GetParentID to GetDirectParentID in WCSimRootCherenkovHitTime, so this may need to be updated if we want direct parent IDs instead of primary parent IDs (DJA)
-      Int_t parentID = (thehittimeobject) ? thehittimeobject->PrimaryParentID() : -1;
+      Int_t parentID = (thehittimeobject) ? thehittimeobject->GetPrimaryParentID() : -1;
       Int_t directparentID = (thehittimeobject) ? thehittimeobject->GetDirectParentID() : -1;
 
       // We'll want a map of particle ID to channel keys, so convert WCSim TubeID to channelkey
@@ -1519,7 +1519,7 @@ std::pair<std::vector<int>, std::vector<int>> LoadWCSim::GetHitParentIDs(WCSimRo
       Log(logmessage, v_error, verbosity);
     }
     else {
-        parentIDs.push_back(theHitTimeObject->GetParentID());
+        parentIDs.push_back(theHitTimeObject->GetPrimaryParentID());
         directParentIDs.push_back(theHitTimeObject->GetDirectParentID());
     }
 
