@@ -168,7 +168,11 @@ bool PMTWaveformSim::Execute()
 
       logmessage = "PMTWaveformSim:\n    hit charge =  " + std::to_string(hit_charge) + " p.e., hit time =  " + std::to_string(hit_t0) + " for PMTID " + std::to_string(PMTID)+ "Direct parent track IDs: " + std::to_string(directParentIDs->size());
       Log(logmessage, v_message, verbosity);
-      std::cout << "Direct parent track IDs: " << directParentIDs->size() << std::endl;
+      std::cout << "Direct parent track IDs: " << directParentIDs->size() <<"And DirectParentIDs are: ";
+      for (const auto& id : *directParentIDs) {
+        std::cout << id << " ";
+      }
+      std::cout << std::endl;
       std::cout << "PMTWaveformSim: hit charge =  " << hit_charge << " p.e., hit time =  " << hit_t0 << " for PMTID " << PMTID << std::endl;
 
       // before "digitizing", add smearing based on the uncertainty extracted in the laser analysis
@@ -227,8 +231,6 @@ bool PMTWaveformSim::Execute()
     RawADCDataMC.emplace(PMTID, rawWaveforms);
     CalADCDataMC.emplace(PMTID, calWaveforms);
     PMTToDirectParentMap[PMTID] = hits_to_directparents_map;
-    std::cout << "PMTWaveformSim: Finished processing PMTID " << PMTID << "Direct parents: " << directParentIDs->size() << " with " << rawWaveforms.size() << " waveforms." << std::endl;
-  }// end loop over PMTs
 
   std::cout << "PMTWaveformSim: Finished looping over MCHits, now publishing waveforms to ANNIEEvent..." << std::endl;
 
