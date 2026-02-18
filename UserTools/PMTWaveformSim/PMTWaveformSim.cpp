@@ -102,7 +102,7 @@ bool PMTWaveformSim::Execute()
   // The container for the data that we'll put into the ANNIEEvent
   std::map<unsigned long, std::vector<Waveform<uint16_t>> > RawADCDataMC;
   std::map<unsigned long, std::vector<CalibratedADCWaveform<double>> > CalADCDataMC;
-  std::map<unsigned long, std::map<uint16_t, std::vector<int>>> PMTToTruthMap;
+  std::map<unsigned long, std::map<uint16_t, std::vector<int>>> PMTToDirectParentMap;
 
 
   // If MCHits is empty (load_status == 2), create one minimal baseline waveform so that the hit finder doesn't freak out
@@ -224,14 +224,14 @@ bool PMTWaveformSim::Execute()
 
     RawADCDataMC.emplace(PMTID, rawWaveforms);
     CalADCDataMC.emplace(PMTID, calWaveforms);
-    PMTToTruthMap[PMTID] = hits_to_directparents_map;
+    PMTToDirectParentMap[PMTID] = hits_to_directparents_map;
   }// end loop over PMTs
 
 
   // Publish the waveforms to the ANNIEEvent store if we have them
   m_data->Stores.at("ANNIEEvent")->Set("RawADCDataMC",      RawADCDataMC);
   m_data->Stores.at("ANNIEEvent")->Set("CalibratedADCData", CalADCDataMC); 
-  m_data->Stores.at("ANNIEEvent")->Set("PMTToTruthMap", PMTToTruthMap);
+  m_data->Stores.at("ANNIEEvent")->Set("PMTToDirectParentMap", PMTToDirectParentMap);
   
   if (fDebug) 
     FillDebugGraphs(RawADCDataMC);
