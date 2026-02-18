@@ -102,6 +102,7 @@ bool PMTWaveformSim::Execute()
   // The container for the data that we'll put into the ANNIEEvent
   std::map<unsigned long, std::vector<Waveform<uint16_t>> > RawADCDataMC;
   std::map<unsigned long, std::vector<CalibratedADCWaveform<double>> > CalADCDataMC;
+  std::map<unsigned long, std::map<uint16_t, std::vector<int>>> PMTToTruthMap;
 
 
   // If MCHits is empty (load_status == 2), create one minimal baseline waveform so that the hit finder doesn't freak out
@@ -132,6 +133,7 @@ bool PMTWaveformSim::Execute()
     
     std::vector<Waveform<uint16_t>> rawWaveforms;
     std::vector<CalibratedADCWaveform<double>> calWaveforms;
+    std::vector<int> directParentIDs;
     
     rawWaveforms.emplace_back(0, rawSamples);
     calWaveforms.emplace_back(0, calSamples, baseline, noiseSigma);
@@ -151,6 +153,7 @@ bool PMTWaveformSim::Execute()
     // samples from hits that are close in time will be added together
     // key is hit time in clock ticks, value is amplitude
     std::map<uint16_t, uint16_t> sample_map;
+    std::map<uint16_t, std::vector<int>> hits_to_directparents_map; //map of hit time to direct parent track IDs (DJA)
     for (const auto& mcHit : mcHits) {// Loop through each MCHit in the vector
 
       // skip negative hit times, what does that even mean if we're not using the smeared digit time?
@@ -161,8 +164,9 @@ bool PMTWaveformSim::Execute()
       // Grab the hit time (also converted to clock ticks) and the charge
       double hit_t0 = mcHit.GetTime() + fTimeShift;
       double hit_charge = mcHit.GetCharge();
+      const std::vector<int>* directParentIDs = mcHit.GetDirectParents();
 
-      logmessage = "PMTWaveformSim:\n    hit charge =  " + std::to_string(hit_charge) + " p.e., hit time =  " + std::to_string(hit_t0) + " for PMTID " + std::to_string(PMTID);
+      logmessage = "PMTWaveformSim:\n    hit charge =  " + std::to_string(hit_charge) + " p.e., hit time =  " + std::to_string(hit_t0) + " for PMTID " + std::to_string(PMTID)+ "Direct parent track IDs: " + std::to_string(directParentIDs->size());
       Log(logmessage, v_message, verbosity);
 
       // before "digitizing", add smearing based on the uncertainty extracted in the laser analysis
@@ -188,14 +192,19 @@ bool PMTWaveformSim::Execute()
         std::stringstream logmessage;
         logmessage << "    --> clocktick = " << clocktick << ", sample = " << sample;
         Log(logmessage.str(), v_message, verbosity);
-	
+
         // check if this hit time has been recorded
         // either set it or add to it
         if (sample_map.find(clocktick) == sample_map.end()) 
           sample_map[clocktick] = sample;
         else 
-          sample_map[clocktick] += sample;		
-            }// end loop over clock ticks
+          sample_map[clocktick] += sample;
+          
+        if (directParentIDs->size() > 0) {
+            hits_to_directparents_map[clocktick].insert(hits_to_directparents_map[clocktick].end(), directParentIDs->begin(), directParentIDs->end());
+          }   
+     
+        }// end loop over clock ticks
         }// end loop over mcHits
     
         // If there are no samples for this PMT then no need to do the rest
@@ -211,16 +220,18 @@ bool PMTWaveformSim::Execute()
     // convert the sample map into a vector of Waveforms and put them into the container
     std::vector<Waveform<uint16_t>> rawWaveforms;
     std::vector<CalibratedADCWaveform<double>> calWaveforms;
-    ConvertMapToWaveforms(sample_map, rawWaveforms, calWaveforms, noiseSigma, basline);
+    ConvertMapToWaveforms(sample_map, hits_to_directparents_map, rawWaveforms, calWaveforms, noiseSigma, basline);
 
     RawADCDataMC.emplace(PMTID, rawWaveforms);
     CalADCDataMC.emplace(PMTID, calWaveforms);
+    PMTToTruthMap[PMTID] = hits_to_directparents_map;
   }// end loop over PMTs
 
 
   // Publish the waveforms to the ANNIEEvent store if we have them
   m_data->Stores.at("ANNIEEvent")->Set("RawADCDataMC",      RawADCDataMC);
   m_data->Stores.at("ANNIEEvent")->Set("CalibratedADCData", CalADCDataMC); 
+  m_data->Stores.at("ANNIEEvent")->Set("PMTToTruthMap", PMTToTruthMap);
   
   if (fDebug) 
     FillDebugGraphs(RawADCDataMC);
@@ -441,6 +452,7 @@ uint16_t PMTWaveformSim::CustomLogNormalPulse(double hit_t0, uint16_t clocktick,
 
 //------------------------------------------------------------------------------
 void PMTWaveformSim::ConvertMapToWaveforms(const std::map<uint16_t, uint16_t> &sample_map,
+             const std::map<uint16_t, std::vector<int>> &hits_to_directparents_map,
 					   std::vector<Waveform<uint16_t>> &rawWaveforms,
 					   std::vector<CalibratedADCWaveform<double>> &calWaveforms,
 					   double noiseSigma, int baseline)
