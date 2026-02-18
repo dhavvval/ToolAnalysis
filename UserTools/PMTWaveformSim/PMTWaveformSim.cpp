@@ -232,7 +232,8 @@ bool PMTWaveformSim::Execute()
     CalADCDataMC.emplace(PMTID, calWaveforms);
     PMTToDirectParentMap[PMTID] = hits_to_directparents_map;
 
-  std::cout << "PMTWaveformSim: Finished looping over MCHits, now publishing waveforms to ANNIEEvent..." << std::endl;
+  } // end loop over PMTs
+    std::cout << "PMTWaveformSim: Finished looping over MCHits, now publishing waveforms to ANNIEEvent..." << std::endl;
 
   // Publish the waveforms to the ANNIEEvent store if we have them
   m_data->Stores.at("ANNIEEvent")->Set("RawADCDataMC",      RawADCDataMC);
@@ -244,7 +245,6 @@ bool PMTWaveformSim::Execute()
 
   return true;
 }
-
 //------------------------------------------------------------------------------
 bool PMTWaveformSim::Finalise()
 {
