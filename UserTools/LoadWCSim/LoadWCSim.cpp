@@ -1103,7 +1103,7 @@ void LoadWCSim::LoadMCParticles(WCSimRootTrigger* firstTrig)
       logmessage = "LoadWCSim::LoadMCParticles: Getting " + std::to_string(aTrigTank->GetNtrack());
       logmessage += " tracks from trigger # " + std::to_string(trigIdx);
       Log(logmessage, v_message, verbosity);	
-
+      std::cout<< "Event Number: " << aTrigTank->GetHeader()->GetEvtNum()<< std::endl;
       for (int trackIdx = 0; trackIdx < aTrigTank->GetNtrack(); trackIdx++) {
 		logmessage = "LoadWCSim::LoadMCParticles: Getting WCSim track # " + std::to_string(trackIdx);
 		Log(logmessage, v_message, verbosity);	
@@ -1111,13 +1111,13 @@ void LoadWCSim::LoadMCParticles(WCSimRootTrigger* firstTrig)
 		auto* nextTrack = (WCSimRootTrack*)aTrigTank->GetTracks()->At(trackIdx);
 		std::cout << "DEBUGGING: Track: " << trackIdx
 			  << "| Track Flag: " << nextTrack->GetFlag() 
-              << " | ID: " << nextTrack->GetId()
-              << " | PDG: " << nextTrack->GetIpnu() 
-              << " | ParentID: " << nextTrack->GetPrimaryParentID() 
-              << " | DirectParentID: " << nextTrack->GetDirectParentID() 
-              << " | Energy: " << nextTrack->GetE() 
-              << " | Dir: (" << nextTrack->GetDir(0) << ", " << nextTrack->GetDir(1) << ", " << nextTrack->GetDir(2) << ")"
-              << std::endl;
+			  << " | ID: " << nextTrack->GetId()
+			  << " | PDG: " << nextTrack->GetIpnu() 
+			  << " | ParentID: " << nextTrack->GetPrimaryParentID() 
+			  << " | DirectParentID: " << nextTrack->GetDirectParentID() 
+			  << " | Energy: " << nextTrack->GetE() 
+			  << " | Dir: (" << nextTrack->GetDir(0) << ", " << nextTrack->GetDir(1) << ", " << nextTrack->GetDir(2) << ")"
+			  << std::endl;
 		tracktype startStopType = tracktype::UNDEFINED;
 
 		// Extract the neutrino information
