@@ -1109,7 +1109,15 @@ void LoadWCSim::LoadMCParticles(WCSimRootTrigger* firstTrig)
 		Log(logmessage, v_message, verbosity);	
 
 		auto* nextTrack = (WCSimRootTrack*)aTrigTank->GetTracks()->At(trackIdx);
-					
+		std::cout << "DEBUGGING: Track: " << trackIdx
+			  << "| Track Flag: " << nextTrack->GetFlag() 
+              << " | ID: " << nextTrack->GetId()
+              << " | PDG: " << nextTrack->GetIpnu() 
+              << " | ParentID: " << nextTrack->GetPrimaryParentID() 
+              << " | DirectParentID: " << nextTrack->GetDirectParentID() 
+              << " | Energy: " << nextTrack->GetE() 
+              << " | Dir: (" << nextTrack->GetDir(0) << ", " << nextTrack->GetDir(1) << ", " << nextTrack->GetDir(2) << ")"
+              << std::endl;
 		tracktype startStopType = tracktype::UNDEFINED;
 
 		// Extract the neutrino information
@@ -1205,7 +1213,6 @@ void LoadWCSim::LoadMCParticles(WCSimRootTrigger* firstTrig)
 
       logmessage = "LoadWCSim::LoadMCParticles: Loaded " + std::to_string(MCParticles->size()) + " MCParticles";
       Log(logmessage, v_debug, verbosity);
-    std::cout <<"Direction"<<(nextTrack->GetDir(0), nextTrack->GetDir(1), nextTrack->GetDir(2)) << " track ipnu (PDG code): " << nextTrack->GetIpnu() << ", energy: " << nextTrack->GetE() << "PrimaryParentID" <<nextTrack->GetParentID() << ", DirectParentID: " << nextTrack->GetDirectParentID() << std::endl;
     } // end loop over events
   }// endif MCTriggerNum == 0
   else {
