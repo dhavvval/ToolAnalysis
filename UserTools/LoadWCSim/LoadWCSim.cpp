@@ -1131,6 +1131,7 @@ void LoadWCSim::LoadMCParticles(WCSimRootTrigger* firstTrig)
                 nextTrack->GetDirectParentID(),
 							  nextTrack->GetFlag(),
 							  trigIdx);
+      //std::cout <<"Direction"<<(nextTrack->GetDir(0), nextTrack->GetDir(1), nextTrack->GetDir(2)) << " track ipnu (PDG code): " << nextTrack->GetIpnu() << ", energy: " << nextTrack->GetE() << "PrimaryParentID" <<nextTrack->GetParentID() << ", DirectParentID: " << nextTrack->GetDirectParentID() << std::endl;
 							
 		  // Save the neutrino own particle in the store
 		  m_data->Stores["ANNIEEvent"]->Set("NeutrinoParticle", neutrino);
@@ -1204,6 +1205,7 @@ void LoadWCSim::LoadMCParticles(WCSimRootTrigger* firstTrig)
 
       logmessage = "LoadWCSim::LoadMCParticles: Loaded " + std::to_string(MCParticles->size()) + " MCParticles";
       Log(logmessage, v_debug, verbosity);
+    std::cout <<"Direction"<<(nextTrack->GetDir(0), nextTrack->GetDir(1), nextTrack->GetDir(2)) << " track ipnu (PDG code): " << nextTrack->GetIpnu() << ", energy: " << nextTrack->GetE() << "PrimaryParentID" <<nextTrack->GetParentID() << ", DirectParentID: " << nextTrack->GetDirectParentID() << std::endl;
     } // end loop over events
   }// endif MCTriggerNum == 0
   else {
