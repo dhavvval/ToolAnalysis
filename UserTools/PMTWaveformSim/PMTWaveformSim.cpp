@@ -1,6 +1,7 @@
 #include <vector>
 #include <cmath>
 #include <map>
+#include <algorithm>
 
 // ANNIE includes
 #include "ANNIEconstants.h"
@@ -155,8 +156,8 @@ bool PMTWaveformSim::Execute()
     // samples from hits that are close in time will be added together
     // key is hit time in clock ticks, value is amplitude
     std::map<uint16_t, uint16_t> sample_map;
-    std::map<uint16_t, std::vector<int>> hits_to_directparents_map; //map of hit time to direct parent track IDs (DJA)
-    std::map<uint16_t, std::vector<int>> hits_to_primaryparents_map; //map of hit time to primary parent track IDs
+    std::map<uint16_t, std::vector<int>> hits_to_directparents_map;  // map of MCHits to direct parent track IDs
+    std::map<uint16_t, std::vector<int>> hits_to_primaryparents_map; // map of MCHits to primary parent track IDs
     for (const auto& mcHit : mcHits) {// Loop through each MCHit in the vector
 
       // skip negative hit times, what does that even mean if we're not using the smeared digit time?
@@ -172,7 +173,7 @@ bool PMTWaveformSim::Execute()
 
       logmessage = "PMTWaveformSim:\n    hit charge =  " + std::to_string(hit_charge) + " p.e., hit time =  " + std::to_string(hit_t0) + " for PMTID " + std::to_string(PMTID)+ "Direct parent track IDs: " + std::to_string(directParentIDs->size());
       Log(logmessage, v_message, verbosity);
-      std::cout << "Direct parent track IDs: " << directParentIDs->size() << "And DirectParentIDs are: ";
+      std::cout << "Direct parent track IDs: " << directParentIDs->size() << " And DirectParentIDs are: ";
 
       for (const auto& id : *directParentIDs) {
         std::cout << id << " ";
@@ -211,20 +212,57 @@ bool PMTWaveformSim::Execute()
         else 
           sample_map[clocktick] += sample;
           
-        if (directParentIDs->size() > 0) {
-            hits_to_directparents_map[clocktick].insert(hits_to_directparents_map[clocktick].end(), directParentIDs->begin(), directParentIDs->end());
-          }
-
-        if (primaryParentIDs->size() > 0) {
-            hits_to_primaryparents_map[clocktick].insert(hits_to_primaryparents_map[clocktick].end(), primaryParentIDs->begin(), primaryParentIDs->end());
-          }
-     
         }// end loop over clock ticks
+
+      // Store parent IDs once per MCHit (at t0 tick) to avoid repeating the same
+      // IDs on every sample in the readout window.
+      if (directParentIDs->size() > 0) {
+        std::vector<int> unique_direct_parent_ids = *directParentIDs;
+        std::sort(unique_direct_parent_ids.begin(), unique_direct_parent_ids.end());
+        unique_direct_parent_ids.erase(std::unique(unique_direct_parent_ids.begin(),
+                                                   unique_direct_parent_ids.end()),
+                                       unique_direct_parent_ids.end());
+        hits_to_directparents_map[t0_ticks].insert(hits_to_directparents_map[t0_ticks].end(),
+                                                   unique_direct_parent_ids.begin(),
+                                                   unique_direct_parent_ids.end());
+      }
+
+      if (primaryParentIDs->size() > 0) {
+        std::vector<int> unique_primary_parent_ids = *primaryParentIDs;
+        std::sort(unique_primary_parent_ids.begin(), unique_primary_parent_ids.end());
+        unique_primary_parent_ids.erase(std::unique(unique_primary_parent_ids.begin(),
+                                                    unique_primary_parent_ids.end()),
+                                        unique_primary_parent_ids.end());
+        hits_to_primaryparents_map[t0_ticks].insert(hits_to_primaryparents_map[t0_ticks].end(),
+                                                    unique_primary_parent_ids.begin(),
+                                                    unique_primary_parent_ids.end());
+      }
+
         }// end loop over mcHits
     
         // If there are no samples for this PMT then no need to do the rest
         if (sample_map.empty()) continue;
-    
+
+
+    size_t total_direct_ids = 0;
+    for (const auto& kv : hits_to_directparents_map) total_direct_ids += kv.second.size();
+
+    size_t total_primary_ids = 0;
+    for (const auto& kv : hits_to_primaryparents_map) total_primary_ids += kv.second.size();
+
+    {
+      std::ostringstream ss;
+      ss << "PMTWaveformSim::ParentStore PMT summary"
+        << " PMT=" << PMTID
+        << " sample_ticks=" << sample_map.size()
+        << " direct_ticks=" << hits_to_directparents_map.size()
+        << " primary_ticks=" << hits_to_primaryparents_map.size()
+        << " direct_ids_total=" << total_direct_ids
+        << " primary_ids_total=" << total_primary_ids;
+    Log(ss.str(), v_message, verbosity);
+        }
+
+        
     
     // Set the noise envelope and baseline for this PMT
     // The noise std dev appears to be normally distributed around 1 with sigma 0.25
@@ -593,5 +631,4 @@ double PMTWaveformSim::TimeSmearing(int pmtid)
   return time_smearing;
 }
 				     
-
 
