@@ -173,14 +173,7 @@ bool PMTWaveformSim::Execute()
 
       logmessage = "PMTWaveformSim:\n    hit charge =  " + std::to_string(hit_charge) + " p.e., hit time =  " + std::to_string(hit_t0) + " for PMTID " + std::to_string(PMTID)+ "Direct parent track IDs: " + std::to_string(directParentIDs->size());
       Log(logmessage, v_message, verbosity);
-      std::cout << "Direct parent track IDs: " << directParentIDs->size() << " And DirectParentIDs are: ";
-
-      for (const auto& id : *directParentIDs) {
-        std::cout << id << " ";
-      }
-      std::cout << std::endl;
-      std::cout << "PMTWaveformSim: hit charge =  " << hit_charge << " p.e., hit time =  " << hit_t0 << " for PMTID " << PMTID << std::endl;
-
+    
       // before "digitizing", add smearing based on the uncertainty extracted in the laser analysis
       if (fuseTimeSmearing) {
         double timesmear = TimeSmearing(PMTID);
@@ -214,8 +207,7 @@ bool PMTWaveformSim::Execute()
           
         }// end loop over clock ticks
 
-      // Store parent IDs once per MCHit (at t0 tick) to avoid repeating the same
-      // IDs on every sample in the readout window.
+      // Store parent IDs once per MCHit (at t0 tick) to avoid repeating the same parent info for every sample tick
       if (directParentIDs->size() > 0) {
         std::vector<int> unique_direct_parent_ids = *directParentIDs;
         std::sort(unique_direct_parent_ids.begin(), unique_direct_parent_ids.end());
@@ -250,18 +242,14 @@ bool PMTWaveformSim::Execute()
     size_t total_primary_ids = 0;
     for (const auto& kv : hits_to_primaryparents_map) total_primary_ids += kv.second.size();
 
-    {
-      std::ostringstream ss;
-      ss << "PMTWaveformSim::ParentStore PMT summary"
-        << " PMT=" << PMTID
-        << " sample_ticks=" << sample_map.size()
-        << " direct_ticks=" << hits_to_directparents_map.size()
-        << " primary_ticks=" << hits_to_primaryparents_map.size()
-        << " direct_ids_total=" << total_direct_ids
-        << " primary_ids_total=" << total_primary_ids;
-    Log(ss.str(), v_message, verbosity);
-        }
 
+    std::cout << "PMTWaveformSim::ParentStore PMT summary: PMT=" << PMTID
+              << " sample_ticks=" << sample_map.size()
+              << " direct_ticks=" << hits_to_directparents_map.size()
+              << " primary_ticks=" << hits_to_primaryparents_map.size()
+              << " direct_ids_total=" << total_direct_ids
+              << " primary_ids_total=" << total_primary_ids
+              << std::endl;
         
     
     // Set the noise envelope and baseline for this PMT
