@@ -452,9 +452,7 @@ bool LoadWCSim::Execute()
   MCFile = WCSimEntry->GetCurrentFile()->GetName();
     
   // Clean slate
-  std::cout << TDCData->size() << std::endl;
   TDCData->clear();
-  std::cout << MCHits->size() << std::endl;
   MCHits->clear();
   MCNeutCap.clear();
   MCNeutCapGammas.clear();
@@ -1111,13 +1109,11 @@ void LoadWCSim::LoadMCParticles(WCSimRootTrigger* firstTrig)
 		auto* nextTrack = (WCSimRootTrack*)aTrigTank->GetTracks()->At(trackIdx);
 		std::cout << "DEBUGGING: Track: " << trackIdx
 			  << "| Track Flag: " << nextTrack->GetFlag() 
-			  << " | ID: " << nextTrack->GetId()
-			  << " | PDG: " << nextTrack->GetIpnu() 
-			  << " | ParentID: " << nextTrack->GetPrimaryParentID() 
-			  << " | DirectParentID: " << nextTrack->GetDirectParentID() 
-			  << " | Energy: " << nextTrack->GetE() 
-			  << " | Dir: (" << nextTrack->GetDir(0) << ", " << nextTrack->GetDir(1) << ", " << nextTrack->GetDir(2) << ")"
-			  << std::endl;
+              << " | ID: " << nextTrack->GetId()
+              << " | PDG: " << nextTrack->GetIpnu() 
+              << " | ParentID: " << nextTrack->GetPrimaryParentID() 
+              << " | DirectParentID: " << nextTrack->GetDirectParentID() 
+              << std::endl;
 		tracktype startStopType = tracktype::UNDEFINED;
 
 		// Extract the neutrino information
@@ -1131,16 +1127,16 @@ void LoadWCSim::LoadMCParticles(WCSimRootTrigger* firstTrig)
 		  double length = (stopPos-startPos).Mag();
 
 		  MCParticle neutrino(nextTrack->GetIpnu(), nextTrack->GetE(), nextTrack->GetEndE(),
-							  startPos, stopPos, startTime, stopTime,
-							  Direction(nextTrack->GetDir(0), nextTrack->GetDir(1), nextTrack->GetDir(2)),
-							  length, startStopType,
-							  nextTrack->GetId(),
-							  nextTrack->GetParenttype(),
-                nextTrack->GetDirectParentID(),
-							  nextTrack->GetFlag(),
-							  trigIdx);
-      //std::cout <<"Direction"<<(nextTrack->GetDir(0), nextTrack->GetDir(1), nextTrack->GetDir(2)) << " track ipnu (PDG code): " << nextTrack->GetIpnu() << ", energy: " << nextTrack->GetE() << "PrimaryParentID" <<nextTrack->GetParentID() << ", DirectParentID: " << nextTrack->GetDirectParentID() << std::endl;
-							
+				      startPos, stopPos, startTime, stopTime,
+				      Direction(nextTrack->GetDir(0), nextTrack->GetDir(1), nextTrack->GetDir(2)),
+				      length, startStopType,
+				      nextTrack->GetId(),
+				      nextTrack->GetParenttype(),
+				      nextTrack->GetPrimaryParentID(),
+				      nextTrack->GetDirectParentID(),
+				      nextTrack->GetFlag(),
+				      trigIdx);
+		  
 		  // Save the neutrino own particle in the store
 		  m_data->Stores["ANNIEEvent"]->Set("NeutrinoParticle", neutrino);
 
@@ -1169,15 +1165,16 @@ void LoadWCSim::LoadMCParticles(WCSimRootTrigger* firstTrig)
 		  mapNeutronIsPrim->emplace(nextTrack->GetId(), (nextTrack->GetParenttype() == 0));
 	
 		MCParticle thisparticle(nextTrack->GetIpnu(), nextTrack->GetE(), nextTrack->GetEndE(),
-								startPos, stopPos, startTime, stopTime,
-								Direction(nextTrack->GetDir(0), nextTrack->GetDir(1), nextTrack->GetDir(2)),
-								length, startStopType,
-								nextTrack->GetId(),
-								nextTrack->GetParenttype(),
-                nextTrack->GetDirectParentID(),
-								nextTrack->GetFlag(),
-								trigIdx);
-
+					startPos, stopPos, startTime, stopTime,
+					Direction(nextTrack->GetDir(0), nextTrack->GetDir(1), nextTrack->GetDir(2)),
+					length, startStopType,
+					nextTrack->GetId(),
+					nextTrack->GetParenttype(),
+					nextTrack->GetPrimaryParentID(),
+					nextTrack->GetDirectParentID(),
+					nextTrack->GetFlag(),
+					trigIdx);
+		
 		// Exit point is not currently in constructor call so set it separately
 		// Older WCSim files do not recor this info. This breaks backward compatibility
 		Position exitPoint(nextTrack->GetTankExitPoint(0),
@@ -1324,7 +1321,6 @@ bool LoadWCSim::LoadHits(WCSimRootTrigger* thisTrig, WCSimRootTrigger* firstTrig
   logmessage  = "LoadWCSim::LoadHits: Looping over " + std::to_string(numDigiHits);
   logmessage += " " + system + " digi. hits";
   Log(logmessage, v_message, verbosity);
-
   for (int hitIdx = 0; hitIdx < numDigiHits; ++hitIdx) {
     logmessage = "LoadWCSim::LoadHits: Getting hit: " + std::to_string(hitIdx);
     Log(logmessage, v_debug, verbosity);
