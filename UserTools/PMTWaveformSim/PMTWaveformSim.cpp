@@ -106,6 +106,7 @@ bool PMTWaveformSim::Execute()
   std::map<unsigned long, std::map<uint16_t, std::vector<int>>> PMTToPrimaryParentMap;
 
 
+
   // If MCHits is empty (load_status == 2), create one minimal baseline waveform so that the hit finder doesn't freak out
   // while keeping the rest of the machinery the same
   if (load_status == 2) {
@@ -172,6 +173,7 @@ bool PMTWaveformSim::Execute()
       logmessage = "PMTWaveformSim:\n    hit charge =  " + std::to_string(hit_charge) + " p.e., hit time =  " + std::to_string(hit_t0) + " for PMTID " + std::to_string(PMTID)+ "Direct parent track IDs: " + std::to_string(directParentIDs->size());
       Log(logmessage, v_message, verbosity);
       std::cout << "Direct parent track IDs: " << directParentIDs->size() << "And DirectParentIDs are: ";
+
       for (const auto& id : *directParentIDs) {
         std::cout << id << " ";
       }
@@ -243,18 +245,19 @@ bool PMTWaveformSim::Execute()
 
   std::cout << "PMTWaveformSim: Finished looping over MCHits, now publishing waveforms to ANNIEEvent..." << std::endl;
 
+
   // Publish the waveforms to the ANNIEEvent store if we have them
   m_data->Stores.at("ANNIEEvent")->Set("RawADCDataMC",      RawADCDataMC);
   m_data->Stores.at("ANNIEEvent")->Set("CalibratedADCData", CalADCDataMC); 
   m_data->Stores.at("ANNIEEvent")->Set("PMTToDirectParentMap", PMTToDirectParentMap);
   m_data->Stores.at("ANNIEEvent")->Set("PMTToPrimaryParentMap", PMTToPrimaryParentMap);
+
   
   if (fDebug) 
     FillDebugGraphs(RawADCDataMC);
 
   return true;
 }
-
 //------------------------------------------------------------------------------
 bool PMTWaveformSim::Finalise()
 {

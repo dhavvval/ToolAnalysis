@@ -1101,7 +1101,7 @@ void LoadWCSim::LoadMCParticles(WCSimRootTrigger* firstTrig)
       logmessage = "LoadWCSim::LoadMCParticles: Getting " + std::to_string(aTrigTank->GetNtrack());
       logmessage += " tracks from trigger # " + std::to_string(trigIdx);
       Log(logmessage, v_message, verbosity);	
-
+      std::cout<< "Event Number: " << aTrigTank->GetHeader()->GetEvtNum()<< std::endl;
       for (int trackIdx = 0; trackIdx < aTrigTank->GetNtrack(); trackIdx++) {
 		logmessage = "LoadWCSim::LoadMCParticles: Getting WCSim track # " + std::to_string(trackIdx);
 		Log(logmessage, v_message, verbosity);	
@@ -1127,17 +1127,17 @@ void LoadWCSim::LoadMCParticles(WCSimRootTrigger* firstTrig)
 		  double length = (stopPos-startPos).Mag();
 
 		  MCParticle neutrino(nextTrack->GetIpnu(), nextTrack->GetE(), nextTrack->GetEndE(),
-							  startPos, stopPos, startTime, stopTime,
-							  Direction(nextTrack->GetDir(0), nextTrack->GetDir(1), nextTrack->GetDir(2)),
-							  length, startStopType,
-							  nextTrack->GetId(),
-							  nextTrack->GetParenttype(),
-                nextTrack->GetPrimaryParentID(),
-                nextTrack->GetDirectParentID(),
-							  nextTrack->GetFlag(),
-							  trigIdx);
-   
-      // Save the neutrino own particle in the store
+				      startPos, stopPos, startTime, stopTime,
+				      Direction(nextTrack->GetDir(0), nextTrack->GetDir(1), nextTrack->GetDir(2)),
+				      length, startStopType,
+				      nextTrack->GetId(),
+				      nextTrack->GetParenttype(),
+				      nextTrack->GetPrimaryParentID(),
+				      nextTrack->GetDirectParentID(),
+				      nextTrack->GetFlag(),
+				      trigIdx);
+		  
+		  // Save the neutrino own particle in the store
 		  m_data->Stores["ANNIEEvent"]->Set("NeutrinoParticle", neutrino);
 
 		  // Don't also create a particle for the neutrino
@@ -1165,16 +1165,16 @@ void LoadWCSim::LoadMCParticles(WCSimRootTrigger* firstTrig)
 		  mapNeutronIsPrim->emplace(nextTrack->GetId(), (nextTrack->GetParenttype() == 0));
 	
 		MCParticle thisparticle(nextTrack->GetIpnu(), nextTrack->GetE(), nextTrack->GetEndE(),
-								startPos, stopPos, startTime, stopTime,
-								Direction(nextTrack->GetDir(0), nextTrack->GetDir(1), nextTrack->GetDir(2)),
-								length, startStopType,
-								nextTrack->GetId(),
-								nextTrack->GetParenttype(),
-                nextTrack->GetPrimaryParentID(),
-                nextTrack->GetDirectParentID(),
-								nextTrack->GetFlag(),
-								trigIdx);
-
+					startPos, stopPos, startTime, stopTime,
+					Direction(nextTrack->GetDir(0), nextTrack->GetDir(1), nextTrack->GetDir(2)),
+					length, startStopType,
+					nextTrack->GetId(),
+					nextTrack->GetParenttype(),
+					nextTrack->GetPrimaryParentID(),
+					nextTrack->GetDirectParentID(),
+					nextTrack->GetFlag(),
+					trigIdx);
+		
 		// Exit point is not currently in constructor call so set it separately
 		// Older WCSim files do not recor this info. This breaks backward compatibility
 		Position exitPoint(nextTrack->GetTankExitPoint(0),
