@@ -452,9 +452,7 @@ bool LoadWCSim::Execute()
   MCFile = WCSimEntry->GetCurrentFile()->GetName();
     
   // Clean slate
-  std::cout << TDCData->size() << std::endl;
   TDCData->clear();
-  std::cout << MCHits->size() << std::endl;
   MCHits->clear();
   MCNeutCap.clear();
   MCNeutCapGammas.clear();
@@ -1115,8 +1113,6 @@ void LoadWCSim::LoadMCParticles(WCSimRootTrigger* firstTrig)
               << " | PDG: " << nextTrack->GetIpnu() 
               << " | ParentID: " << nextTrack->GetPrimaryParentID() 
               << " | DirectParentID: " << nextTrack->GetDirectParentID() 
-              << " | Energy: " << nextTrack->GetE() 
-              << " | Dir: (" << nextTrack->GetDir(0) << ", " << nextTrack->GetDir(1) << ", " << nextTrack->GetDir(2) << ")"
               << std::endl;
 		tracktype startStopType = tracktype::UNDEFINED;
 
@@ -1136,12 +1132,12 @@ void LoadWCSim::LoadMCParticles(WCSimRootTrigger* firstTrig)
 							  length, startStopType,
 							  nextTrack->GetId(),
 							  nextTrack->GetParenttype(),
+                nextTrack->GetPrimaryParentID(),
                 nextTrack->GetDirectParentID(),
 							  nextTrack->GetFlag(),
 							  trigIdx);
-      //std::cout <<"Direction"<<(nextTrack->GetDir(0), nextTrack->GetDir(1), nextTrack->GetDir(2)) << " track ipnu (PDG code): " << nextTrack->GetIpnu() << ", energy: " << nextTrack->GetE() << "PrimaryParentID" <<nextTrack->GetParentID() << ", DirectParentID: " << nextTrack->GetDirectParentID() << std::endl;
-							
-		  // Save the neutrino own particle in the store
+   
+      // Save the neutrino own particle in the store
 		  m_data->Stores["ANNIEEvent"]->Set("NeutrinoParticle", neutrino);
 
 		  // Don't also create a particle for the neutrino
@@ -1174,6 +1170,7 @@ void LoadWCSim::LoadMCParticles(WCSimRootTrigger* firstTrig)
 								length, startStopType,
 								nextTrack->GetId(),
 								nextTrack->GetParenttype(),
+                nextTrack->GetPrimaryParentID(),
                 nextTrack->GetDirectParentID(),
 								nextTrack->GetFlag(),
 								trigIdx);
@@ -1324,7 +1321,6 @@ bool LoadWCSim::LoadHits(WCSimRootTrigger* thisTrig, WCSimRootTrigger* firstTrig
   logmessage  = "LoadWCSim::LoadHits: Looping over " + std::to_string(numDigiHits);
   logmessage += " " + system + " digi. hits";
   Log(logmessage, v_message, verbosity);
-
   for (int hitIdx = 0; hitIdx < numDigiHits; ++hitIdx) {
     logmessage = "LoadWCSim::LoadHits: Getting hit: " + std::to_string(hitIdx);
     Log(logmessage, v_debug, verbosity);

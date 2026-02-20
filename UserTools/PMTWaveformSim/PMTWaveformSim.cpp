@@ -103,6 +103,7 @@ bool PMTWaveformSim::Execute()
   std::map<unsigned long, std::vector<Waveform<uint16_t>> > RawADCDataMC;
   std::map<unsigned long, std::vector<CalibratedADCWaveform<double>> > CalADCDataMC;
   std::map<unsigned long, std::map<uint16_t, std::vector<int>>> PMTToDirectParentMap;
+  std::map<unsigned long, std::map<uint16_t, std::vector<int>>> PMTToPrimaryParentMap;
 
 
   // If MCHits is empty (load_status == 2), create one minimal baseline waveform so that the hit finder doesn't freak out
@@ -154,6 +155,7 @@ bool PMTWaveformSim::Execute()
     // key is hit time in clock ticks, value is amplitude
     std::map<uint16_t, uint16_t> sample_map;
     std::map<uint16_t, std::vector<int>> hits_to_directparents_map; //map of hit time to direct parent track IDs (DJA)
+    std::map<uint16_t, std::vector<int>> hits_to_primaryparents_map; //map of hit time to primary parent track IDs
     for (const auto& mcHit : mcHits) {// Loop through each MCHit in the vector
 
       // skip negative hit times, what does that even mean if we're not using the smeared digit time?
@@ -165,10 +167,11 @@ bool PMTWaveformSim::Execute()
       double hit_t0 = mcHit.GetTime() + fTimeShift;
       double hit_charge = mcHit.GetCharge();
       const std::vector<int>* directParentIDs = mcHit.GetDirectParents();
+      const std::vector<int>* primaryParentIDs = mcHit.GetParents();
 
       logmessage = "PMTWaveformSim:\n    hit charge =  " + std::to_string(hit_charge) + " p.e., hit time =  " + std::to_string(hit_t0) + " for PMTID " + std::to_string(PMTID)+ "Direct parent track IDs: " + std::to_string(directParentIDs->size());
       Log(logmessage, v_message, verbosity);
-      std::cout << "Direct parent track IDs: " << directParentIDs->size() <<"And DirectParentIDs are: ";
+      std::cout << "Direct parent track IDs: " << directParentIDs->size() << "And DirectParentIDs are: ";
       for (const auto& id : *directParentIDs) {
         std::cout << id << " ";
       }
@@ -208,7 +211,11 @@ bool PMTWaveformSim::Execute()
           
         if (directParentIDs->size() > 0) {
             hits_to_directparents_map[clocktick].insert(hits_to_directparents_map[clocktick].end(), directParentIDs->begin(), directParentIDs->end());
-          }   
+          }
+
+        if (primaryParentIDs->size() > 0) {
+            hits_to_primaryparents_map[clocktick].insert(hits_to_primaryparents_map[clocktick].end(), primaryParentIDs->begin(), primaryParentIDs->end());
+          }
      
         }// end loop over clock ticks
         }// end loop over mcHits
@@ -231,20 +238,23 @@ bool PMTWaveformSim::Execute()
     RawADCDataMC.emplace(PMTID, rawWaveforms);
     CalADCDataMC.emplace(PMTID, calWaveforms);
     PMTToDirectParentMap[PMTID] = hits_to_directparents_map;
-
+    PMTToPrimaryParentMap[PMTID] = hits_to_primaryparents_map;
   } // end loop over PMTs
-    std::cout << "PMTWaveformSim: Finished looping over MCHits, now publishing waveforms to ANNIEEvent..." << std::endl;
+
+  std::cout << "PMTWaveformSim: Finished looping over MCHits, now publishing waveforms to ANNIEEvent..." << std::endl;
 
   // Publish the waveforms to the ANNIEEvent store if we have them
   m_data->Stores.at("ANNIEEvent")->Set("RawADCDataMC",      RawADCDataMC);
   m_data->Stores.at("ANNIEEvent")->Set("CalibratedADCData", CalADCDataMC); 
   m_data->Stores.at("ANNIEEvent")->Set("PMTToDirectParentMap", PMTToDirectParentMap);
+  m_data->Stores.at("ANNIEEvent")->Set("PMTToPrimaryParentMap", PMTToPrimaryParentMap);
   
   if (fDebug) 
     FillDebugGraphs(RawADCDataMC);
 
   return true;
 }
+
 //------------------------------------------------------------------------------
 bool PMTWaveformSim::Finalise()
 {
@@ -580,7 +590,5 @@ double PMTWaveformSim::TimeSmearing(int pmtid)
   return time_smearing;
 }
 				     
-
-
 
 
