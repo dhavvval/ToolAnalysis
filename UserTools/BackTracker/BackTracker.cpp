@@ -1,5 +1,4 @@
 #include "BackTracker.h"
-#include <algorithm>
 
 BackTracker::BackTracker():Tool(){}
 
@@ -89,14 +88,12 @@ bool BackTracker::Execute()
         if (it != MCIndexToTrackID.end()) directParentIDs.push_back(it->second);
       }
 
-      std::sort(directParentIDs.begin(), directParentIDs.end());
-      directParentIDs.erase(std::unique(directParentIDs.begin(), directParentIDs.end()), directParentIDs.end());
-      clusterMCHits_DirectIDs.push_back(std::move(directParentIDs));
-     
       std::cout << "[BT DEBUG] hit directIdx_count=" << directIdxs->size()
           << " mapped_directTrackID_count=" << directParentIDs.size() << " IDs: ";
           for (int id : directParentIDs) std::cout << id << " ";
           std::cout << std::endl;
+
+      clusterMCHits_DirectIDs.push_back(std::move(directParentIDs));
     }
 
     MatchMCParticle(apair.second, prtId, prtPdg, eff, pur, totalCharge);
