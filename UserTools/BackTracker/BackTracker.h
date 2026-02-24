@@ -57,6 +57,11 @@ class BackTracker: public Tool {
   std::map<double, double> *fClusterPurity            = nullptr;
   std::map<double, double> *fClusterTotalCharge       = nullptr;
 
+  // Cluster Time -> MCHit DirectParentIDs
+  std::map<double, std::vector<std::vector<int>>> *fClusterHitToDirectParentTrackIDs = nullptr;
+
+
+
   /// \brief verbosity levels: if 'verbosity' < this level, the message type will be logged.
   int verbosity;
   int v_error=0;
