@@ -150,15 +150,15 @@ bool PMTWaveformSim::Execute()
   for (auto mcHitsIt : *fMCHits) { // Loop over the hit PMTs
     int PMTID = mcHitsIt.first;
 
-    std::vector<MCHit> mcHits = mcHitsIt.second;
+    std::vector<MCHit> &mcHits = mcHitsIt.second;
 
     // Generate waveform samples from the MC hits
     // samples from hits that are close in time will be added together
     // key is hit time in clock ticks, value is amplitude
     std::map<uint16_t, uint16_t> sample_map;
-    std::map<uint16_t, std::vector<int>> hits_to_directparents_map;  // map of MCHits to direct parent track IDs
-    std::map<uint16_t, std::vector<int>> hits_to_primaryparents_map; // map of MCHits to primary parent track IDs
-    for (const auto& mcHit : mcHits) {// Loop through each MCHit in the vector
+
+    for (MCHit& mcHit : mcHits) {// Loop through each MCHit in the vector
+>>>>>>> 1bd6b8e (Expand MCHits to contain start and end clock ticks, which are filled in PMTWaveformSim. These will be used in BackTracker for hit to MCParticle matching)
 
       // skip negative hit times, what does that even mean if we're not using the smeared digit time?
       // skip hit times past 70 us since that's our longest readout
@@ -187,6 +187,10 @@ bool PMTWaveformSim::Execute()
       uint16_t start_clocktick = (t0_ticks > fPrewindow)? t0_ticks - fPrewindow : 0;
       uint16_t end_clocktick = start_clocktick + fReadoutWindow;
 
+	  // Put these ticks into the actual MCHit
+	  mcHit.SetStartTick(start_clocktick);
+	  mcHit.SetEndTick(end_clocktick);
+	  
       // Randomly Sample the PMT parameters for each MCHit
       SampleFitParameters(PMTID);
 
