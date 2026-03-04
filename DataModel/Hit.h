@@ -86,7 +86,7 @@ public:
   MCHit(int tubeid, double thetime, double thecharge, std::vector<int> theparents, std::vector<int> thedirectparents)
     : Hit(tubeid, thetime, thecharge)
 	, Parents(theparents)
-    , DirectParents( 
+  , DirectParents(tdirectparents)
 	, StartTick(-5)
 	, EndTick(-5)
   {
@@ -96,10 +96,12 @@ public:
   virtual ~MCHit(){};
 	
   const std::vector<int>* GetParents() { return &Parents; }
+  const std::vector<int>* GetDirectParents() { return &DirectParents; }
   int GetStartTick() { return StartTick; }
   int GetEndTick() { return EndTick; }
   
   void SetParents(std::vector<int> parentsin) { Parents = parentsin; }
+  void SetDirectParents(std::vector<int> directparentsin) { DirectParents = directparentsin; }
   void SetStartTick(int tick) { StartTick = tick; }
   void SetEndTick(int tick) { EndTick = tick; }
 
@@ -127,6 +129,7 @@ public:
 	
 protected:
   std::vector<int> Parents;
+  std::vector<int> DirectParents;
   int StartTick;
   int EndTick;
 	
@@ -139,6 +142,7 @@ protected:
 
 	  if (version > 0) {
 		ar & Parents; // Parents is now track IDs rather than index within vector
+    ar & DirectParents; 
 		ar & StartTick;
 		ar & EndTick;
 	  }
