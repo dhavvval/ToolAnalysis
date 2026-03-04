@@ -75,6 +75,7 @@ public:
   MCHit()
 	: Hit()
 	, Parents(std::vector<int>{})
+	, DirectParents(std::vector<int>{})
 	, StartTick(-5)
 	, EndTick(-5)
   {
@@ -82,9 +83,10 @@ public:
   }
 
   // Start and End ticks are only ever to be set after initialization
-  MCHit(int tubeid, double thetime, double thecharge, std::vector<int> theparents)
+  MCHit(int tubeid, double thetime, double thecharge, std::vector<int> theparents, std::vector<int> thedirectparents)
     : Hit(tubeid, thetime, thecharge)
 	, Parents(theparents)
+    , DirectParents( 
 	, StartTick(-5)
 	, EndTick(-5)
   {
@@ -98,8 +100,9 @@ public:
   int GetEndTick() { return EndTick; }
   
   void SetParents(std::vector<int> parentsin) { Parents = parentsin; }
-  void SetStartTick(uint16_t tick) { StartTick = tick; }
-  void SetEndTick(uint16_t tick) { EndTick = tick; }
+  void SetStartTick(int tick) { StartTick = tick; }
+  void SetEndTick(int tick) { EndTick = tick; }
+
 	
   bool Print()
   {
