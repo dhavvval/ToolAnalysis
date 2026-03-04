@@ -1393,8 +1393,15 @@ bool LoadWCSim::LoadHits(WCSimRootTrigger* thisTrig, WCSimRootTrigger* firstTrig
     Log(logmessage, v_debug, verbosity);
     
     // Create the hit and put it in the correct map
-    std::pair<std::vector<int>, std::vector<int>> hitsIDs = GetHitParentIdxs(digiHit, firstTrig);
-    MCHit nextHit(key, digiTime, digiQ, hitsIDs.first, hitsIDs.second);
+    std::pair<std::vector<int>, std::vector<int>> hitParentIDs = GetHitParentIDs(digiHit, firstTrig);
+  
+    std::cout << "[LoadWCSim DEBUG] tubeID=" << tubeID << " | first(primary IDs): ";
+    for (int id : hitParentIDs.first) std::cout << id << " ";
+    std::cout << "| second(direct IDs): ";
+    for (int id : hitParentIDs.second) std::cout << id << " ";
+    std::cout << std::endl;
+
+    MCHit nextHit(key, digiTime, digiQ, hitParentIDs.first, hitParentIDs.second);
 
     if (system == "Tank") {
       if (MCHits->count(key) == 0) MCHits->emplace(key, std::vector<MCHit>{nextHit});
