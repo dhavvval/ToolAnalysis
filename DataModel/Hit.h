@@ -94,12 +94,12 @@ public:
   virtual ~MCHit(){};
 	
   const std::vector<int>* GetParents() { return &Parents; }
-  int GetStartTick() { return StartTick };
-  int GetEndTick() { return EndTick };
+  int GetStartTick() { return StartTick; }
+  int GetEndTick() { return EndTick; }
   
   void SetParents(std::vector<int> parentsin) { Parents = parentsin; }
-  void SetStartTick(tick) { StartTick = tick };
-  void SetEndTick(tick) { EndTick = tick };
+  void SetStartTick(uint16_t tick) { StartTick = tick; }
+  void SetEndTick(uint16_t tick) { EndTick = tick; }
 	
   bool Print()
   {
