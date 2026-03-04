@@ -139,7 +139,6 @@ protected:
 		ar & StartTick;
 		ar & EndTick;
 	  }
->>>>>>> 1bd6b8e (Expand MCHits to contain start and end clock ticks, which are filled in PMTWaveformSim. These will be used in BackTracker for hit to MCParticle matching)
 	}
   }
 };
