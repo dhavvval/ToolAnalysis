@@ -158,8 +158,6 @@ bool PMTWaveformSim::Execute()
     std::map<uint16_t, uint16_t> sample_map;
 
     for (MCHit& mcHit : mcHits) {// Loop through each MCHit in the vector
->>>>>>> 1bd6b8e (Expand MCHits to contain start and end clock ticks, which are filled in PMTWaveformSim. These will be used in BackTracker for hit to MCParticle matching)
-
       // skip negative hit times, what does that even mean if we're not using the smeared digit time?
       // skip hit times past 70 us since that's our longest readout
       if (mcHit.GetTime() < 0) continue;
