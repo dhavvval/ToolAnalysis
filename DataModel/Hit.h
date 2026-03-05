@@ -86,7 +86,7 @@ public:
   MCHit(int tubeid, double thetime, double thecharge, std::vector<int> theparents, std::vector<int> thedirectparents)
     : Hit(tubeid, thetime, thecharge)
 	, Parents(theparents)
-  , DirectParents(tdirectparents)
+  , DirectParents(thedirectparents)
 	, StartTick(-5)
 	, EndTick(-5)
   {
