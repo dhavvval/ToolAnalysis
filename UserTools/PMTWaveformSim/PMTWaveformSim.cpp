@@ -103,10 +103,6 @@ bool PMTWaveformSim::Execute()
   // The container for the data that we'll put into the ANNIEEvent
   std::map<unsigned long, std::vector<Waveform<uint16_t>> > RawADCDataMC;
   std::map<unsigned long, std::vector<CalibratedADCWaveform<double>> > CalADCDataMC;
-  std::map<unsigned long, std::map<uint16_t, std::vector<int>>> PMTToDirectParentMap;
-  std::map<unsigned long, std::map<uint16_t, std::vector<int>>> PMTToPrimaryParentMap;
-
-
 
   // If MCHits is empty (load_status == 2), create one minimal baseline waveform so that the hit finder doesn't freak out
   // while keeping the rest of the machinery the same
@@ -211,51 +207,10 @@ bool PMTWaveformSim::Execute()
           sample_map[clocktick] += sample;
           
         }// end loop over clock ticks
-
-      // Store parent IDs once per MCHit (at t0 tick) to avoid repeating the same parent info for every sample tick
-      if (directParentIDs->size() > 0) {
-        std::vector<int> unique_direct_parent_ids = *directParentIDs;
-        std::sort(unique_direct_parent_ids.begin(), unique_direct_parent_ids.end());
-        unique_direct_parent_ids.erase(std::unique(unique_direct_parent_ids.begin(),
-                                                   unique_direct_parent_ids.end()),
-                                       unique_direct_parent_ids.end());
-        hits_to_directparents_map[t0_ticks].insert(hits_to_directparents_map[t0_ticks].end(),
-                                                   unique_direct_parent_ids.begin(),
-                                                   unique_direct_parent_ids.end());
-      }
-
-      if (primaryParentIDs->size() > 0) {
-        std::vector<int> unique_primary_parent_ids = *primaryParentIDs;
-        std::sort(unique_primary_parent_ids.begin(), unique_primary_parent_ids.end());
-        unique_primary_parent_ids.erase(std::unique(unique_primary_parent_ids.begin(),
-                                                    unique_primary_parent_ids.end()),
-                                        unique_primary_parent_ids.end());
-        hits_to_primaryparents_map[t0_ticks].insert(hits_to_primaryparents_map[t0_ticks].end(),
-                                                    unique_primary_parent_ids.begin(),
-                                                    unique_primary_parent_ids.end());
-      }
-
-        }// end loop over mcHits
+      }// end loop over mcHits
     
         // If there are no samples for this PMT then no need to do the rest
-        if (sample_map.empty()) continue;
-
-
-    size_t total_direct_ids = 0;
-    for (const auto& kv : hits_to_directparents_map) total_direct_ids += kv.second.size();
-
-    size_t total_primary_ids = 0;
-    for (const auto& kv : hits_to_primaryparents_map) total_primary_ids += kv.second.size();
-
-
-    std::cout << "PMTWaveformSim::ParentStore PMT summary: PMT=" << PMTID
-              << " sample_ticks=" << sample_map.size()
-              << " direct_ticks=" << hits_to_directparents_map.size()
-              << " primary_ticks=" << hits_to_primaryparents_map.size()
-              << " direct_ids_total=" << total_direct_ids
-              << " primary_ids_total=" << total_primary_ids
-              << std::endl;
-        
+        if (sample_map.empty()) continue;      
     
     // Set the noise envelope and baseline for this PMT
     // The noise std dev appears to be normally distributed around 1 with sigma 0.25
@@ -266,12 +221,10 @@ bool PMTWaveformSim::Execute()
     // convert the sample map into a vector of Waveforms and put them into the container
     std::vector<Waveform<uint16_t>> rawWaveforms;
     std::vector<CalibratedADCWaveform<double>> calWaveforms;
-    ConvertMapToWaveforms(sample_map, hits_to_directparents_map, rawWaveforms, calWaveforms, noiseSigma, basline);
+    ConvertMapToWaveforms(sample_map, rawWaveforms, calWaveforms, noiseSigma, basline);
 
     RawADCDataMC.emplace(PMTID, rawWaveforms);
     CalADCDataMC.emplace(PMTID, calWaveforms);
-    PMTToDirectParentMap[PMTID] = hits_to_directparents_map;
-    PMTToPrimaryParentMap[PMTID] = hits_to_primaryparents_map;
   } // end loop over PMTs
 
   std::cout << "PMTWaveformSim: Finished looping over MCHits, now publishing waveforms to ANNIEEvent..." << std::endl;
@@ -280,8 +233,6 @@ bool PMTWaveformSim::Execute()
   // Publish the waveforms to the ANNIEEvent store if we have them
   m_data->Stores.at("ANNIEEvent")->Set("RawADCDataMC",      RawADCDataMC);
   m_data->Stores.at("ANNIEEvent")->Set("CalibratedADCData", CalADCDataMC); 
-  m_data->Stores.at("ANNIEEvent")->Set("PMTToDirectParentMap", PMTToDirectParentMap);
-  m_data->Stores.at("ANNIEEvent")->Set("PMTToPrimaryParentMap", PMTToPrimaryParentMap);
 
   
   if (fDebug) 
@@ -502,7 +453,6 @@ uint16_t PMTWaveformSim::CustomLogNormalPulse(double hit_t0, uint16_t clocktick,
 
 //------------------------------------------------------------------------------
 void PMTWaveformSim::ConvertMapToWaveforms(const std::map<uint16_t, uint16_t> &sample_map,
-             const std::map<uint16_t, std::vector<int>> &hits_to_directparents_map,
 					   std::vector<Waveform<uint16_t>> &rawWaveforms,
 					   std::vector<CalibratedADCWaveform<double>> &calWaveforms,
 					   double noiseSigma, int baseline)
