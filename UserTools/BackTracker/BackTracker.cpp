@@ -80,50 +80,23 @@ bool BackTracker::Execute()
 
     clusterMCHits_DirectIDs.reserve(apair.second.size());
     for (const MCHit& clusterHit : apair.second) {
-      unsigned long pmtId = static_cast<unsigned long>(clusterHit.GetTubeId());
-      int hitStart = clusterHit.GetStartTick();
-      int hitEnd   = clusterHit.GetEndTick();
-
       std::vector<int> directParentIDs;
 
-      // Guard: StartTick/EndTick are set by PMTWaveformSim. If still at the
-      // sentinel value (-5), the loop ordering is wrong or the fix to use
-      // auto& in PMTWaveformSim's outer loop was not applied.
-      if (hitStart == -5 || hitEnd == -5) {
-        logmessage = "BackTracker: cluster MCHit has unset StartTick/EndTick (sentinel -5). "
-                     "Check that PMTWaveformSim runs before clustering.";
-        Log(logmessage, v_warning, verbosity);
-        clusterMCHits_DirectIDs.push_back(directParentIDs);
-        continue;
+      // DirectParents on the cluster MCHit are indices into the MCParticles vector.
+      // Map them to track IDs via MCIndexToTrackID.
+      for (int idx : *clusterHit.GetDirectParents()) {
+        auto it = MCIndexToTrackID.find(idx);
+        if (it != MCIndexToTrackID.end())
+          directParentIDs.push_back(it->second);
       }
 
-      if (fMCHitsMap->count(pmtId)) {
-        for (const MCHit& mcHit : fMCHitsMap->at(pmtId)) {
-          int mcStart = mcHit.GetStartTick();
-          int mcEnd   = mcHit.GetEndTick();
-
-          if (mcStart == -5 || mcEnd == -5) continue;
-
-          // Tick-range overlap: [mcStart, mcEnd] overlaps [hitStart, hitEnd]
-          if (mcEnd >= hitStart && mcStart <= hitEnd) {
-            for (int idx : *mcHit.GetDirectParents()) {
-              auto it = MCIndexToTrackID.find(idx);
-              if (it != MCIndexToTrackID.end())
-                directParentIDs.push_back(it->second);
-            }
-          }
-        }
-      }
-
-      // Deduplicate: multiple overlapping MCHits can share a parent
       std::sort(directParentIDs.begin(), directParentIDs.end());
       directParentIDs.erase(
         std::unique(directParentIDs.begin(), directParentIDs.end()),
         directParentIDs.end()
       );
 
-      std::cout << "[BT DEBUG] hit pmtId=" << pmtId
-                << " ticks=[" << hitStart << "," << hitEnd << "]"
+      std::cout << "[BT DEBUG] hit pmtId=" << clusterHit.GetTubeId()
                 << " directTrackID_count=" << directParentIDs.size() << " IDs: ";
       for (int id : directParentIDs) std::cout << id << " ";
       std::cout << std::endl;
