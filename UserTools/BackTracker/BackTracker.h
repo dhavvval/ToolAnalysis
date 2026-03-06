@@ -57,8 +57,9 @@ class BackTracker: public Tool {
   std::map<double, double> *fClusterPurity            = nullptr;
   std::map<double, double> *fClusterTotalCharge       = nullptr;
 
-  // Cluster Time -> MCHit DirectParentIDs
+
   std::map<double, std::vector<std::vector<int>>> *fClusterHitToDirectParentTrackIDs = nullptr;
+  std::map<double, std::vector<std::vector<int>>> *fClusterHitToPrimaryParentTrackIDs = nullptr;
 
 
 

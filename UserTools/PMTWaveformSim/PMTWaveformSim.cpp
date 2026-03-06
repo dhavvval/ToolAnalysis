@@ -143,8 +143,7 @@ bool PMTWaveformSim::Execute()
 
   }
 
-  // normal use case (no blank MCHits)
-  for (auto mcHitsIt : *fMCHits) { // Loop over the hit PMTs
+  for (auto& mcHitsIt : *fMCHits) { // Loop over the hit PMTs
     int PMTID = mcHitsIt.first;
 
     std::vector<MCHit> &mcHits = mcHitsIt.second;
@@ -153,8 +152,6 @@ bool PMTWaveformSim::Execute()
     // samples from hits that are close in time will be added together
     // key is hit time in clock ticks, value is amplitude
     std::map<uint16_t, uint16_t> sample_map;
-    std::map<uint16_t, std::vector<int>> hits_to_directparents_map;
-    std::map<uint16_t, std::vector<int>> hits_to_primaryparents_map;
     
     for (MCHit& mcHit : mcHits) {// Loop through each MCHit in the vector
       // skip negative hit times, what does that even mean if we're not using the smeared digit time?
