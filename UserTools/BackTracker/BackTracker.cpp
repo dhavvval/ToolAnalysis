@@ -79,7 +79,7 @@ bool BackTracker::Execute()
     std::vector<std::vector<int>> clusterMCHits_DirectIDs;
     
     clusterMCHits_DirectIDs.reserve(apair.second.size());
-    for (const auto& mchit : apair.second) {
+    for (auto& mchit : apair.second) {
       std::vector<int> directParentIDs;
       const std::vector<int>* directIdxs = mchit.GetDirectParents();
 
