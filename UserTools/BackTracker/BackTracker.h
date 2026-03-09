@@ -40,6 +40,9 @@ class BackTracker: public Tool {
   std::vector<MCParticle>                     *fMCParticles = nullptr;        ///< The true particles from the event
   std::map<int, int>                          *fMCParticleIndexMap = nullptr; ///< Map between the particle Id and it's position in MCParticles vector
 
+
+  std::map<unsigned long, std::vector<MCHit>> *fMCHitsWithTicks = nullptr;
+
   // We'll calculate this map from MCHit parent particle to the total charge deposited throughout the tank
   // technically a MCHit could have multiple parents, but they don't appear to in practice
   // the key is particle Id and value is total tank charge
@@ -52,14 +55,12 @@ class BackTracker: public Tool {
   //   the total deposited charge in the cluster
   //   the ammount of cluster charge due to neutrons
   std::map<double, int>    *fClusterToBestParticleID  = nullptr;
-  std::map<double, int>    *fClusterToBestParticlePDG = nullptr; 
+  std::map<double, int>    *fClusterToBestParticlePDG = nullptr;
   std::map<double, double> *fClusterEfficiency        = nullptr;
   std::map<double, double> *fClusterPurity            = nullptr;
   std::map<double, double> *fClusterTotalCharge       = nullptr;
-
-
-  std::map<double, std::vector<std::vector<int>>> *fClusterHitToDirectParentTrackIDs = nullptr;
-  std::map<double, std::vector<std::vector<int>>> *fClusterHitToPrimaryParentTrackIDs = nullptr;
+  std::map<unsigned long, std::vector<std::vector<int>>> *fMCHitDirectParentIDs  = nullptr;
+  std::map<unsigned long, std::vector<std::vector<int>>> *fMCHitPrimaryParentIDs = nullptr;
 
 
 

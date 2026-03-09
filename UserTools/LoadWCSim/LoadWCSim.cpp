@@ -1107,13 +1107,13 @@ void LoadWCSim::LoadMCParticles(WCSimRootTrigger* firstTrig)
 		Log(logmessage, v_message, verbosity);	
 
 		auto* nextTrack = (WCSimRootTrack*)aTrigTank->GetTracks()->At(trackIdx);
-		std::cout << "DEBUGGING: Track: " << trackIdx
+		/*std::cout << "DEBUGGING: Track: " << trackIdx
 			  << "| Track Flag: " << nextTrack->GetFlag() 
               << " | ID: " << nextTrack->GetId()
               << " | PDG: " << nextTrack->GetIpnu() 
               << " | ParentID: " << nextTrack->GetPrimaryParentID() 
               << " | DirectParentID: " << nextTrack->GetDirectParentID() 
-              << std::endl;
+              << std::endl; */
 		tracktype startStopType = tracktype::UNDEFINED;
 
 		// Extract the neutrino information

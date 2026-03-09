@@ -74,6 +74,8 @@ bool PMTWaveformSim::Initialise(std::string configfile, DataModel &data)
     logmessage = "PMTWaveformSim: TimeShift = " + std::to_string(fTimeShift) + "ns will be applied to ALL MCHits.";
     Log(logmessage, v_warning, verbosity);
   }
+  // Publish for BackTracker so it can correctly convert cluster times to clock ticks
+  m_data->CStore.Set("PMTWaveformSimTimeShift", fTimeShift);
 
   bool gotDebug = m_variables.Get("MakeDebugFile", fDebug);
   if (!gotDebug) fDebug = 0;
@@ -226,10 +228,17 @@ bool PMTWaveformSim::Execute()
 
   std::cout << "PMTWaveformSim: Finished looping over MCHits, now publishing waveforms to ANNIEEvent..." << std::endl;
 
+  // Save a deep copy of the MCHits map now that StartTick/EndTick are set on every photon hit.
+  // ClusterFinder will later overwrite "MCHits" with merged hits (StartTick=EndTick=-5),
+  // so BackTracker must read from this separate key to get the original per-photon ticks.
+  if (load_status == 1 && fMCHits) {
+    auto* mcHitsWithTicks = new std::map<unsigned long, std::vector<MCHit>>(*fMCHits);
+    m_data->Stores.at("ANNIEEvent")->Set("MCHitsWithTicks", mcHitsWithTicks, true);
+  }
 
   // Publish the waveforms to the ANNIEEvent store if we have them
   m_data->Stores.at("ANNIEEvent")->Set("RawADCDataMC",      RawADCDataMC);
-  m_data->Stores.at("ANNIEEvent")->Set("CalibratedADCData", CalADCDataMC); 
+  m_data->Stores.at("ANNIEEvent")->Set("CalibratedADCData", CalADCDataMC);
 
   
   if (fDebug) 

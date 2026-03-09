@@ -28,16 +28,16 @@ bool BackTracker::Initialise(std::string configfile, DataModel &data){
   }
 
 
-  // Set up the pointers we're going to save. No need to 
+  // Set up the pointers we're going to save. No need to
   // delete them at Finalize, the store will handle it
   fClusterToBestParticleID  = new std::map<double, int>;
   fClusterToBestParticlePDG = new std::map<double, int>;
   fClusterEfficiency        = new std::map<double, double>;
   fClusterPurity            = new std::map<double, double>;
   fClusterTotalCharge       = new std::map<double, double>;
-  fClusterHitToDirectParentTrackIDs  = new std::map<double, std::vector<std::vector<int>>>;
-  fClusterHitToPrimaryParentTrackIDs = new std::map<double, std::vector<std::vector<int>>>;
-  
+  fMCHitDirectParentIDs  = new std::map<unsigned long, std::vector<std::vector<int>>>;
+  fMCHitPrimaryParentIDs = new std::map<unsigned long, std::vector<std::vector<int>>>;
+
   return true;
 }
 
@@ -52,73 +52,24 @@ bool BackTracker::Execute()
   fClusterEfficiency       ->clear();
   fClusterPurity           ->clear();
   fClusterTotalCharge      ->clear();
-
   fParticleToTankTotalCharge.clear();
-  fClusterHitToDirectParentTrackIDs->clear();
-  fClusterHitToPrimaryParentTrackIDs->clear();
+  fMCHitDirectParentIDs ->clear();
+  fMCHitPrimaryParentIDs->clear();
   SumParticleTankCharge();
 
   //mapping MC-Index to TrackIDs
   std::map<int,int> MCIndexToTrackID;
   for (const auto& mchit : *fMCParticleIndexMap) {
-    MCIndexToTrackID[mchit.second] = mchit.first; 
+    MCIndexToTrackID[mchit.second] = mchit.first;
   }
 
-  std::cout << "[BT DEBUG] MCIndexToTrackID size = " << MCIndexToTrackID.size() << std::endl;
-
-  // Loop over the clusters and do the things
+  // Loop over clusters for cluster-level truth matching (efficiency, purity, best particle)
   for (std::pair<double, std::vector<MCHit>>&& apair : *fClusterMapMC) {
     int prtId = -5;
     int prtPdg = -5;
     double eff = -5;
     double pur = -5;
     double totalCharge = 0;
-
-    // Grabbing DirectparentIDs for each MCHits in the cluster
-    std::cout << "[BT DEBUG] cluster_time=" << apair.first
-          << " mchits_in_cluster=" << apair.second.size() << std::endl;
-
-    std::vector<std::vector<int>> clusterMCHits_DirectIDs;
-    std::vector<std::vector<int>> clusterMCHits_PrimaryIDs;
-
-    clusterMCHits_DirectIDs.reserve(apair.second.size());
-    clusterMCHits_PrimaryIDs.reserve(apair.second.size());
-    for (const MCHit& clusterHit : apair.second) {
-
-      std::vector<int> directParentIDs;
-      for (int idx : *clusterHit.GetDirectParents()) {
-        auto it = MCIndexToTrackID.find(idx);
-        if (it != MCIndexToTrackID.end())
-          directParentIDs.push_back(it->second);
-      }
-      std::sort(directParentIDs.begin(), directParentIDs.end());
-      directParentIDs.erase(
-        std::unique(directParentIDs.begin(), directParentIDs.end()),
-        directParentIDs.end()
-      );
-
-      std::vector<int> primaryParentIDs;
-      for (int idx : *clusterHit.GetParents()) {
-        auto it = MCIndexToTrackID.find(idx);
-        if (it != MCIndexToTrackID.end())
-          primaryParentIDs.push_back(it->second);
-      }
-      std::sort(primaryParentIDs.begin(), primaryParentIDs.end());
-      primaryParentIDs.erase(
-        std::unique(primaryParentIDs.begin(), primaryParentIDs.end()),
-        primaryParentIDs.end()
-      );
-
-      std::cout << "[BT DEBUG] hit pmtId=" << clusterHit.GetTubeId()
-                << " directTrackID_count=" << directParentIDs.size() << " IDs: ";
-      for (int id : directParentIDs) std::cout << id << " ";
-      std::cout << "| primaryTrackID_count=" << primaryParentIDs.size() << " IDs: ";
-      for (int id : primaryParentIDs) std::cout << id << " ";
-      std::cout << std::endl;
-
-      clusterMCHits_DirectIDs.push_back(std::move(directParentIDs));
-      clusterMCHits_PrimaryIDs.push_back(std::move(primaryParentIDs));
-    }
 
     MatchMCParticle(apair.second, prtId, prtPdg, eff, pur, totalCharge);
 
@@ -127,13 +78,33 @@ bool BackTracker::Execute()
     fClusterEfficiency       ->emplace(apair.first, eff);
     fClusterPurity           ->emplace(apair.first, pur);
     fClusterTotalCharge      ->emplace(apair.first, totalCharge);
-    fClusterHitToDirectParentTrackIDs->emplace(apair.first, std::move(clusterMCHits_DirectIDs));
-    fClusterHitToPrimaryParentTrackIDs->emplace(apair.first, std::move(clusterMCHits_PrimaryIDs));
-    std::cout << "[BT DEBUG] stored vectors for cluster_time=" << apair.first
-          << " direct_count=" << fClusterHitToDirectParentTrackIDs->at(apair.first).size()
-          << " primary_count=" << fClusterHitToPrimaryParentTrackIDs->at(apair.first).size()
-          << std::endl;
+  }
 
+  // Build per-individual-MCHit parent track ID maps directly from fMCHitsWithTicks.
+  if (fMCHitsWithTicks) {
+    for (const auto& channelPair : *fMCHitsWithTicks) {
+      unsigned long chankey = channelPair.first;
+      std::vector<std::vector<int>> directPerMCHit;
+      std::vector<std::vector<int>> primaryPerMCHit;
+      directPerMCHit.reserve(channelPair.second.size());
+      primaryPerMCHit.reserve(channelPair.second.size());
+      for (const MCHit& mchit : channelPair.second) {
+        std::vector<int> directIDs;
+        for (int idx : *mchit.GetDirectParents()) {
+          auto it = MCIndexToTrackID.find(idx);
+          if (it != MCIndexToTrackID.end()) directIDs.push_back(it->second);
+        }
+        std::vector<int> primaryIDs;
+        for (int idx : *mchit.GetParents()) {
+          auto it = MCIndexToTrackID.find(idx);
+          if (it != MCIndexToTrackID.end()) primaryIDs.push_back(it->second);
+        }
+        directPerMCHit.push_back(std::move(directIDs));
+        primaryPerMCHit.push_back(std::move(primaryIDs));
+      }
+      fMCHitDirectParentIDs ->emplace(chankey, std::move(directPerMCHit));
+      fMCHitPrimaryParentIDs->emplace(chankey, std::move(primaryPerMCHit));
+    }
   }
 
   m_data->Stores.at("ANNIEEvent")->Set("ClusterToBestParticleID",  fClusterToBestParticleID );
@@ -141,13 +112,8 @@ bool BackTracker::Execute()
   m_data->Stores.at("ANNIEEvent")->Set("ClusterEfficiency",        fClusterEfficiency       );
   m_data->Stores.at("ANNIEEvent")->Set("ClusterPurity",            fClusterPurity           );
   m_data->Stores.at("ANNIEEvent")->Set("ClusterTotalCharge",       fClusterTotalCharge      );
-  m_data->Stores.at("ANNIEEvent")->Set("ClusterHitToDirectParentTrackIDs",  fClusterHitToDirectParentTrackIDs);
-  m_data->Stores.at("ANNIEEvent")->Set("ClusterHitToPrimaryParentTrackIDs", fClusterHitToPrimaryParentTrackIDs);
-
-std::map<double, std::vector<std::vector<int>>>* check = nullptr;
-bool ok = m_data->Stores.at("ANNIEEvent")->Get("ClusterHitToDirectParentTrackIDs", check);
-std::cout << "[BT DEBUG] ANNIEEvent Get ClusterHitToDirectParentTrackIDs ok=" << ok
-          << " clusters=" << (ok ? check->size() : 0) << std::endl;
+  m_data->Stores.at("ANNIEEvent")->Set("MCHitDirectParentIDs",  fMCHitDirectParentIDs);
+  m_data->Stores.at("ANNIEEvent")->Set("MCHitPrimaryParentIDs", fMCHitPrimaryParentIDs);
 
   return true;
 }
@@ -170,19 +136,19 @@ void BackTracker::SumParticleTankCharge()
       // skip any cases we come across
       std::vector<int> parentIdxs = *(mcHits[mcHitIdx].GetParents());
       if (parentIdxs.size() != 1) continue;
-      
+
       int particleId = -5;
       for (auto it : *fMCParticleIndexMap) {
 	if (it.second == parentIdxs[0]) particleId = it.first;
       }
       if (particleId == -5) continue;
-	
-      double depositedCharge = mcHits[mcHitIdx].GetCharge();      
-      if (!fParticleToTankTotalCharge.count(particleId)) 
+
+      double depositedCharge = mcHits[mcHitIdx].GetCharge();
+      if (!fParticleToTankTotalCharge.count(particleId))
 	fParticleToTankTotalCharge.emplace(particleId, depositedCharge);
-      else 
+      else
 	fParticleToTankTotalCharge.at(particleId) += depositedCharge;
-    }    
+    }
   }
 }
 
@@ -194,7 +160,7 @@ void BackTracker::MatchMCParticle(std::vector<MCHit> const &mchits, int &prtId, 
   std::map<int, double> mapParticleToTotalClusterCharge;
   totalCharge = 0;
 
-  for (auto mchit : mchits) {    
+  for (auto mchit : mchits) {
     std::vector<int> parentIdxs = *(mchit.GetParents());
     if (parentIdxs.size() != 1) {
       logmessage = "BackTracker::MatchMCParticle: this MCHit has ";
@@ -202,21 +168,21 @@ void BackTracker::MatchMCParticle(std::vector<MCHit> const &mchits, int &prtId, 
       Log(logmessage, v_debug, verbosity);
       continue;
     }
-    
+
     int particleId = -5;
     for (auto it : *fMCParticleIndexMap) {
       if (it.second == parentIdxs[0]) particleId = it.first;
     }
     if (particleId == -5) continue;
-    
+
     double depositedCharge = mchit.GetCharge();
     totalCharge += depositedCharge;
-    
-    if (mapParticleToTotalClusterCharge.count(particleId) == 0) 
+
+    if (mapParticleToTotalClusterCharge.count(particleId) == 0)
       mapParticleToTotalClusterCharge.emplace(particleId, depositedCharge);
     else
-      mapParticleToTotalClusterCharge[particleId] += depositedCharge;    
-  }       
+      mapParticleToTotalClusterCharge[particleId] += depositedCharge;
+  }
 
   // Loop over the particleIds to find the primary contributer to the cluster
   double maxCharge = 0;
@@ -260,13 +226,13 @@ bool BackTracker::LoadFromStores()
     std::cerr<<"BackTracker: no ANNIEEvent store!"<<endl;
     return false;
   }
-    
+
   bool goodMCHits = m_data->Stores.at("ANNIEEvent")->Get("MCHits", fMCHitsMap);
   if (!goodMCHits) {
     std::cerr<<"BackTracker: no MCHits in the ANNIEEvent!"<<endl;
     return false;
   }
-  
+
   bool goodMCParticles = m_data->Stores.at("ANNIEEvent")->Get("MCParticles", fMCParticles);
   if (!goodMCParticles) {
     std::cerr<<"BackTracker: no MCParticles in the ANNIEEvent!"<<endl;
@@ -277,6 +243,15 @@ bool BackTracker::LoadFromStores()
   if (!goodMCParticleIndexMap) {
     std::cerr<<"BackTracker: no TrackId_to_MCParticleIndex in the ANNIEEvent!"<<endl;
     return false;
+  }
+
+  // Read MCHitsWithTicks (original per-photon hits saved by PMTWaveformSim before ClusterFinder runs)
+  // Not fatal if absent — per-MCHit parent matching will simply be skipped
+  bool goodMCHitsWithTicks = m_data->Stores.at("ANNIEEvent")->Get("MCHitsWithTicks", fMCHitsWithTicks);
+  if (!goodMCHitsWithTicks) {
+    logmessage = "BackTracker: MCHitsWithTicks not found in ANNIEEvent. Per-MCHit parent matching will be unavailable.";
+    Log(logmessage, v_warning, verbosity);
+    fMCHitsWithTicks = nullptr;
   }
 
   return true;
