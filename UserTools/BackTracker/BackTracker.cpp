@@ -35,8 +35,6 @@ bool BackTracker::Initialise(std::string configfile, DataModel &data){
   fClusterEfficiency        = new std::map<double, double>;
   fClusterPurity            = new std::map<double, double>;
   fClusterTotalCharge       = new std::map<double, double>;
-  fMCHitDirectParentIDs  = new std::map<unsigned long, std::vector<std::vector<int>>>;
-  fMCHitPrimaryParentIDs = new std::map<unsigned long, std::vector<std::vector<int>>>;
 
   return true;
 }
@@ -53,15 +51,8 @@ bool BackTracker::Execute()
   fClusterPurity           ->clear();
   fClusterTotalCharge      ->clear();
   fParticleToTankTotalCharge.clear();
-  fMCHitDirectParentIDs ->clear();
-  fMCHitPrimaryParentIDs->clear();
   SumParticleTankCharge();
 
-  //mapping MC-Index to TrackIDs
-  std::map<int,int> MCIndexToTrackID;
-  for (const auto& mchit : *fMCParticleIndexMap) {
-    MCIndexToTrackID[mchit.second] = mchit.first;
-  }
 
   // Loop over clusters for cluster-level truth matching (efficiency, purity, best particle)
   for (std::pair<double, std::vector<MCHit>>&& apair : *fClusterMapMC) {
@@ -80,40 +71,12 @@ bool BackTracker::Execute()
     fClusterTotalCharge      ->emplace(apair.first, totalCharge);
   }
 
-  // Build per-individual-MCHit parent track ID maps directly from fMCHitsWithTicks.
-  if (fMCHitsWithTicks) {
-    for (const auto& channelPair : *fMCHitsWithTicks) {
-      unsigned long chankey = channelPair.first;
-      std::vector<std::vector<int>> directPerMCHit;
-      std::vector<std::vector<int>> primaryPerMCHit;
-      directPerMCHit.reserve(channelPair.second.size());
-      primaryPerMCHit.reserve(channelPair.second.size());
-      for (const MCHit& mchit : channelPair.second) {
-        std::vector<int> directIDs;
-        for (int idx : *mchit.GetDirectParents()) {
-          auto it = MCIndexToTrackID.find(idx);
-          if (it != MCIndexToTrackID.end()) directIDs.push_back(it->second);
-        }
-        std::vector<int> primaryIDs;
-        for (int idx : *mchit.GetParents()) {
-          auto it = MCIndexToTrackID.find(idx);
-          if (it != MCIndexToTrackID.end()) primaryIDs.push_back(it->second);
-        }
-        directPerMCHit.push_back(std::move(directIDs));
-        primaryPerMCHit.push_back(std::move(primaryIDs));
-      }
-      fMCHitDirectParentIDs ->emplace(chankey, std::move(directPerMCHit));
-      fMCHitPrimaryParentIDs->emplace(chankey, std::move(primaryPerMCHit));
-    }
-  }
 
   m_data->Stores.at("ANNIEEvent")->Set("ClusterToBestParticleID",  fClusterToBestParticleID );
   m_data->Stores.at("ANNIEEvent")->Set("ClusterToBestParticlePDG", fClusterToBestParticlePDG);
   m_data->Stores.at("ANNIEEvent")->Set("ClusterEfficiency",        fClusterEfficiency       );
   m_data->Stores.at("ANNIEEvent")->Set("ClusterPurity",            fClusterPurity           );
   m_data->Stores.at("ANNIEEvent")->Set("ClusterTotalCharge",       fClusterTotalCharge      );
-  m_data->Stores.at("ANNIEEvent")->Set("MCHitDirectParentIDs",  fMCHitDirectParentIDs);
-  m_data->Stores.at("ANNIEEvent")->Set("MCHitPrimaryParentIDs", fMCHitPrimaryParentIDs);
 
   return true;
 }

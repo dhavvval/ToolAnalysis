@@ -59,9 +59,6 @@ class BackTracker: public Tool {
   std::map<double, double> *fClusterEfficiency        = nullptr;
   std::map<double, double> *fClusterPurity            = nullptr;
   std::map<double, double> *fClusterTotalCharge       = nullptr;
-  std::map<unsigned long, std::vector<std::vector<int>>> *fMCHitDirectParentIDs  = nullptr;
-  std::map<unsigned long, std::vector<std::vector<int>>> *fMCHitPrimaryParentIDs = nullptr;
-
 
 
   /// \brief verbosity levels: if 'verbosity' < this level, the message type will be logged.
