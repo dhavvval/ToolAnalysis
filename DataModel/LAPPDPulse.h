@@ -22,12 +22,24 @@ class LAPPDPulse : public Hit{
 	inline void SetChannelID(int channelid){ChannelID=channelid;}
 	inline void SetPeak(double peak){Peak=peak;}
 	inline void SetRange(double low, double hi){LowRange=low; HiRange=hi;}
+	inline void SetHalfHeightTime(double half){halfHeightTime=half;}
+	inline double GetHalfHeightTime(){return halfHeightTime;}
+	inline void SetHalfEndTime(double half){halfEndTime=half;}
+	inline double GetHalfEndTime(){return halfEndTime;}
+	inline void SetBaseline(double base){baseline=base;}
+	inline double GetBaseline(){return baseline;}
+	inline void SetPulseFollowTime(double pulseFollow){pulseFollowTime=pulseFollow;}
+	inline double GetPulseFollowTime(){return pulseFollowTime;}
+	inline void SetPulseFollowCharge(double pulseFollow){pulseFollowCharge=pulseFollow;}
+	inline double GetPulseFollowCharge(){return pulseFollowCharge;}
 
 	bool Print() {
 		cout<<"TubeId : "<<TubeId<<endl;
 		cout<<"ChannelID : "<<ChannelID<<endl;
 		cout<<"Time : "<<Time<<endl;
 		cout<<"Charge : "<<Charge<<endl;
+		cout<<"HalfHeightTime : "<<halfHeightTime<<endl;
+		cout<<"Baseline : "<<baseline<<endl;
 		return true;
 	}
 
@@ -36,6 +48,12 @@ class LAPPDPulse : public Hit{
 	double Peak;
 	double LowRange;
 	double HiRange;
+	double halfHeightTime;
+	double halfEndTime;
+	double baseline;
+	double pulseFollowTime;
+	double pulseFollowCharge;
+
 
 
 	template<class Archive> void serialize(Archive & ar, const unsigned int version){
@@ -47,6 +65,11 @@ class LAPPDPulse : public Hit{
 			ar & Peak;
 			ar & LowRange;
 			ar & HiRange;
+			ar & halfHeightTime;
+			ar & halfEndTime;
+			ar & baseline;
+			ar & pulseFollowTime;
+			ar & pulseFollowCharge;
 		}
 	}
 };
