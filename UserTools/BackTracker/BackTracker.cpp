@@ -125,6 +125,7 @@ void BackTracker::MatchMCParticle(std::vector<MCHit> const &mchits, int &prtId, 
 
   for (auto mchit : mchits) {
     std::vector<int> parentIdxs = *(mchit.GetParents());
+    //std::vector<int> directParentIdxs = *(mchit.GetDirectParents());
     if (parentIdxs.size() != 1) {
       logmessage = "BackTracker::MatchMCParticle: this MCHit has ";
       logmessage += std::to_string(parentIdxs.size()) + " parents!";
