@@ -279,6 +279,8 @@ bool PMTWaveformSim::Execute()
   m_data->Stores.at("ANNIEEvent")->Set("CalibratedADCData", CalADCDataMC); 
   m_data->Stores.at("ANNIEEvent")->Set("PMTToDirectParentMap", PMTToDirectParentMap);
   m_data->Stores.at("ANNIEEvent")->Set("PMTToPrimaryParentMap", PMTToPrimaryParentMap);
+  m_data->Stores.at("ANNIEEvent")->Set("PMTSimPrewindowTicks", fPrewindow);
+  m_data->Stores.at("ANNIEEvent")->Set("PMTSimReadoutWindowTicks", fReadoutWindow);
 
   
   if (fDebug) 
@@ -556,7 +558,6 @@ int PMTWaveformSim::LoadFromStores()
     return 2;
   }
 
-  
   return 1;
 }
 

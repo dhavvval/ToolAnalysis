@@ -3,8 +3,10 @@
 
 #include <string>
 #include <iostream>
+#include <set>
 
 #include "Tool.h"
+#include "ADCPulse.h"
 #include "Hit.h"
 #include "Particle.h"
 
@@ -31,6 +33,7 @@ class BackTracker: public Tool {
   bool LoadFromStores(); ///< Does all the loading so I can move it away from the Execute function
   void SumParticleTankCharge();
   void MatchMCParticle(std::vector<MCHit> const &mchits, int &prtId, int &prtPdg, double &eff, double &pur, double &totalCharge); ///< The meat and potatoes
+  void DirectParentsFromClockTickWindows();
   
  private:
 
@@ -39,6 +42,8 @@ class BackTracker: public Tool {
   std::map<double, std::vector<MCHit>>        *fClusterMapMC = nullptr;       ///< Clusters that we will be linking MCParticles to
   std::vector<MCParticle>                     *fMCParticles = nullptr;        ///< The true particles from the event
   std::map<int, int>                          *fMCParticleIndexMap = nullptr; ///< Map between the particle Id and it's position in MCParticles vector
+  std::map<unsigned long, std::map<uint16_t, std::vector<int>>> *fPMTToDirectParentMap = nullptr; ///< PMT -> t0 tick -> direct parent IDs
+  std::map<unsigned long, std::vector<std::vector<ADCPulse>>> *fRecoADCHits = nullptr; ///< Reconstructed ADCPulses from PhaseIIADCHitFinder
 
   // We'll calculate this map from MCHit parent particle to the total charge deposited throughout the tank
   // technically a MCHit could have multiple parents, but they don't appear to in practice
@@ -59,6 +64,13 @@ class BackTracker: public Tool {
 
   // Cluster Time -> MCHit DirectParentIDs
   std::map<double, std::vector<std::vector<int>>> *fClusterHitToDirectParentTrackIDs = nullptr;
+
+  // PMT ID -> reco hit time -> direct parent track IDs
+  std::map<unsigned long, std::map<double, std::vector<int>>> fHitToDirectParents;
+
+  bool fUsePulseWindowMatching = true;
+  uint16_t fPMTSimPrewindowTicks = 10;
+  uint16_t fPMTSimReadoutWindowTicks = 35;
 
 
 

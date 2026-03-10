@@ -1,4 +1,5 @@
 #include "BackTracker.h"
+#include "ANNIEconstants.h"
 
 BackTracker::BackTracker():Tool(){}
 
@@ -27,6 +28,9 @@ bool BackTracker::Initialise(std::string configfile, DataModel &data){
     Log(logmessage, v_error, verbosity);
   }
 
+  bool gotUsePulseWindowMatching = m_variables.Get("UsePulseWindowMatching", fUsePulseWindowMatching);
+  if (!gotUsePulseWindowMatching) fUsePulseWindowMatching = true;
+
 
   // Set up the pointers we're going to save. No need to 
   // delete them at Finalize, the store will handle it
@@ -35,7 +39,7 @@ bool BackTracker::Initialise(std::string configfile, DataModel &data){
   fClusterEfficiency        = new std::map<double, double>;
   fClusterPurity            = new std::map<double, double>;
   fClusterTotalCharge       = new std::map<double, double>;
-  fClusterHitToDirectParentTrackIDs = new std::map<double, std::vector<std::vector<int>>>;
+  //fClusterHitToDirectParentTrackIDs = new std::map<double, std::vector<std::vector<int>>>;
   
   return true;
 }
@@ -51,18 +55,8 @@ bool BackTracker::Execute()
   fClusterEfficiency       ->clear();
   fClusterPurity           ->clear();
   fClusterTotalCharge      ->clear();
-
   fParticleToTankTotalCharge.clear();
-  fClusterHitToDirectParentTrackIDs->clear();
   SumParticleTankCharge();
-
-  //mapping MC-Index to TrackIDs
-  std::map<int,int> MCIndexToTrackID;
-  for (const auto& mchit : *fMCParticleIndexMap) {
-    MCIndexToTrackID[mchit.second] = mchit.first; 
-  }
-
-  std::cout << "[BT DEBUG] MCIndexToTrackID size = " << MCIndexToTrackID.size() << std::endl;
 
   // Loop over the clusters and do the things
   for (std::pair<double, std::vector<MCHit>>&& apair : *fClusterMapMC) {
@@ -72,30 +66,6 @@ bool BackTracker::Execute()
     double pur = -5;
     double totalCharge = 0;
 
-    // Grabbing DirectparentIDs for each MCHits in the cluster
-    std::cout << "[BT DEBUG] cluster_time=" << apair.first
-          << " mchits_in_cluster=" << apair.second.size() << std::endl;
-
-    std::vector<std::vector<int>> clusterMCHits_DirectIDs;
-    
-    clusterMCHits_DirectIDs.reserve(apair.second.size());
-    for (const auto& mchit : apair.second) {
-      std::vector<int> directParentIDs;
-      const std::vector<int>* directIdxs = mchit.GetDirectParents();
-
-      for (int idx : *directIdxs) {
-        auto it = MCIndexToTrackID.find(idx);
-        if (it != MCIndexToTrackID.end()) directParentIDs.push_back(it->second);
-      }
-
-      std::cout << "[BT DEBUG] hit directIdx_count=" << directIdxs->size()
-          << " mapped_directTrackID_count=" << directParentIDs.size() << " IDs: ";
-          for (int id : directParentIDs) std::cout << id << " ";
-          std::cout << std::endl;
-
-      clusterMCHits_DirectIDs.push_back(std::move(directParentIDs));
-    }
-
     MatchMCParticle(apair.second, prtId, prtPdg, eff, pur, totalCharge);
 
     fClusterToBestParticleID ->emplace(apair.first, prtId);
@@ -103,10 +73,6 @@ bool BackTracker::Execute()
     fClusterEfficiency       ->emplace(apair.first, eff);
     fClusterPurity           ->emplace(apair.first, pur);
     fClusterTotalCharge      ->emplace(apair.first, totalCharge);
-    fClusterHitToDirectParentTrackIDs->emplace(apair.first, std::move(clusterMCHits_DirectIDs));
-    std::cout << "[BT DEBUG] stored vectors for cluster_time=" << apair.first
-          << " count=" << fClusterHitToDirectParentTrackIDs->at(apair.first).size()
-          << std::endl;
 
   }
 
@@ -115,12 +81,6 @@ bool BackTracker::Execute()
   m_data->Stores.at("ANNIEEvent")->Set("ClusterEfficiency",        fClusterEfficiency       );
   m_data->Stores.at("ANNIEEvent")->Set("ClusterPurity",            fClusterPurity           );
   m_data->Stores.at("ANNIEEvent")->Set("ClusterTotalCharge",       fClusterTotalCharge      );
-  m_data->Stores.at("ANNIEEvent")->Set("ClusterHitToDirectParentTrackIDs", fClusterHitToDirectParentTrackIDs);
-
-std::map<double, std::vector<std::vector<int>>>* check = nullptr;
-bool ok = m_data->Stores.at("ANNIEEvent")->Get("ClusterHitToDirectParentTrackIDs", check);
-std::cout << "[BT DEBUG] ANNIEEvent Get ClusterHitToDirectParentTrackIDs ok=" << ok
-          << " clusters=" << (ok ? check->size() : 0) << std::endl;
 
   return true;
 }
@@ -218,6 +178,48 @@ void BackTracker::MatchMCParticle(std::vector<MCHit> const &mchits, int &prtId, 
 
 }
 
+void BackTracker::DirectParentsFromClockTickWindows()
+{
+  fHitToDirectParents.clear();
+  if (!fPMTToDirectParentMap || !fRecoADCHits) return;
+
+  const double prewindow_ns = static_cast<double>(fPMTSimPrewindowTicks) * NS_PER_ADC_SAMPLE;
+  const double readout_ns = static_cast<double>(fPMTSimReadoutWindowTicks) * NS_PER_ADC_SAMPLE;
+
+  for (auto const& recoIt : *fRecoADCHits) {
+    unsigned long pmtID = recoIt.first;
+
+    auto parentMapIt = fPMTToDirectParentMap->find(pmtID);
+    if (parentMapIt == fPMTToDirectParentMap->end()) continue;
+
+    std::map<uint16_t, std::vector<int>> const& hits_to_directparents_map = parentMapIt->second;
+
+    for (std::vector<ADCPulse> const& minibufPulses : recoIt.second) {
+      for (ADCPulse const& pulse : minibufPulses) {
+        double pulseStart = pulse.start_time();
+        double hitTime = pulse.peak_time();
+
+        double tmin = pulseStart - prewindow_ns;
+        double tmax = pulseStart + readout_ns;
+
+        for (auto const& apair : hits_to_directparents_map) {
+          double mchitTime = static_cast<double>(apair.first) * NS_PER_ADC_SAMPLE;
+
+          if (mchitTime > tmin && mchitTime < tmax) {
+            fHitToDirectParents[pmtID][hitTime].insert(
+              fHitToDirectParents[pmtID][hitTime].end(),
+              apair.second.begin(), apair.second.end());
+          }
+        }
+      }
+    }
+  }
+  std::cout << "BackTracker::DirectParentsFromClockTickWindows: matched direct parent IDs for " << fHitToDirectParents.size() << " PMTs." << std::endl;
+  std::cout << "BackTracker::DirectParentsFromClockTickWindows: example PMT " << fHitToDirectParents.begin()->first 
+            << " has " << fHitToDirectParents.begin()->second.size() << " hit times with direct parent matches." << std::endl;
+}
+
+
 //------------------------------------------------------------------------------
 bool BackTracker::LoadFromStores()
 {
@@ -250,6 +252,26 @@ bool BackTracker::LoadFromStores()
   if (!goodMCParticleIndexMap) {
     std::cerr<<"BackTracker: no TrackId_to_MCParticleIndex in the ANNIEEvent!"<<endl;
     return false;
+  }
+
+  if (fUsePulseWindowMatching) {
+    bool gotDirectParentMap = m_data->Stores.at("ANNIEEvent")->Get("PMTToDirectParentMap", fPMTToDirectParentMap);
+    bool gotRecoADCHits = m_data->Stores.at("ANNIEEvent")->Get("RecoADCHits", fRecoADCHits);
+    if (!gotDirectParentMap || !gotRecoADCHits) {
+      logmessage = "BackTracker: PMTToDirectParentMap or RecoADCHits missing, disabling pulse-window matching for this event.";
+      Log(logmessage, v_warning, verbosity);
+      fPMTToDirectParentMap = nullptr;
+      fRecoADCHits = nullptr;
+    }
+
+    uint16_t prewindowTicks = fPMTSimPrewindowTicks;
+    uint16_t readoutTicks = fPMTSimReadoutWindowTicks;
+    if (m_data->Stores.at("ANNIEEvent")->Get("PMTSimPrewindowTicks", prewindowTicks)) {
+      fPMTSimPrewindowTicks = prewindowTicks;
+    }
+    if (m_data->Stores.at("ANNIEEvent")->Get("PMTSimReadoutWindowTicks", readoutTicks)) {
+      fPMTSimReadoutWindowTicks = readoutTicks;
+    }
   }
 
   return true;
