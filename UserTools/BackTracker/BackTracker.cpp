@@ -50,6 +50,10 @@ bool BackTracker::Execute()
   if (!LoadFromStores())
     return false;
 
+  if (fUsePulseWindowMatching) {
+    DirectParentsFromClockTickWindows();
+  }
+
   fClusterToBestParticleID ->clear();
   fClusterToBestParticlePDG->clear();
   fClusterEfficiency       ->clear();
@@ -186,6 +190,17 @@ void BackTracker::DirectParentsFromClockTickWindows()
   const double prewindow_ns = static_cast<double>(fPMTSimPrewindowTicks) * NS_PER_ADC_SAMPLE;
   const double readout_ns = static_cast<double>(fPMTSimReadoutWindowTicks) * NS_PER_ADC_SAMPLE;
 
+  std::cout << "BackTracker::DirectParentsFromClockTickWindows input: RecoADCHits PMTs="
+            << fRecoADCHits->size()
+            << ", PMTToDirectParentMap PMTs=" << fPMTToDirectParentMap->size()
+            << ", preTicks=" << fPMTSimPrewindowTicks
+            << ", readoutTicks=" << fPMTSimReadoutWindowTicks
+            << std::endl;
+
+  size_t total_pulses_checked = 0;
+  size_t total_tick_matches = 0;
+  int debug_print_budget = 20;
+
   for (auto const& recoIt : *fRecoADCHits) {
     unsigned long pmtID = recoIt.first;
 
@@ -194,29 +209,65 @@ void BackTracker::DirectParentsFromClockTickWindows()
 
     std::map<uint16_t, std::vector<int>> const& hits_to_directparents_map = parentMapIt->second;
 
+    std::cout << "BackTracker::DirectParentsFromClockTickWindows PMT " << pmtID
+              << ": reco minibufs=" << recoIt.second.size()
+              << ", truth tick bins=" << hits_to_directparents_map.size()
+              << std::endl;
+
     for (std::vector<ADCPulse> const& minibufPulses : recoIt.second) {
       for (ADCPulse const& pulse : minibufPulses) {
+        ++total_pulses_checked;
         double pulseStart = pulse.start_time();
         double hitTime = pulse.peak_time();
 
         double tmin = pulseStart - prewindow_ns;
         double tmax = pulseStart + readout_ns;
 
+        if (debug_print_budget > 0) {
+          std::cout << "BackTracker::DirectParentsFromClockTickWindows pulse: PMT=" << pmtID
+                    << ", start=" << pulseStart
+                    << ", peak=" << hitTime
+                    << ", tmin=" << tmin
+                    << ", tmax=" << tmax
+                    << std::endl;
+          --debug_print_budget;
+        }
+
         for (auto const& apair : hits_to_directparents_map) {
           double mchitTime = static_cast<double>(apair.first) * NS_PER_ADC_SAMPLE;
 
           if (mchitTime > tmin && mchitTime < tmax) {
+            ++total_tick_matches;
             fHitToDirectParents[pmtID][hitTime].insert(
               fHitToDirectParents[pmtID][hitTime].end(),
               apair.second.begin(), apair.second.end());
+
+            if (debug_print_budget > 0) {
+              std::cout << "BackTracker::DirectParentsFromClockTickWindows match: PMT=" << pmtID
+                        << ", mchitTime=" << mchitTime
+                        << ", tick=" << apair.first
+                        << ", nParentsAdded=" << apair.second.size()
+                        << std::endl;
+              --debug_print_budget;
+            }
           }
         }
       }
     }
   }
-  std::cout << "BackTracker::DirectParentsFromClockTickWindows: matched direct parent IDs for " << fHitToDirectParents.size() << " PMTs." << std::endl;
-  std::cout << "BackTracker::DirectParentsFromClockTickWindows: example PMT " << fHitToDirectParents.begin()->first 
-            << " has " << fHitToDirectParents.begin()->second.size() << " hit times with direct parent matches." << std::endl;
+
+  std::cout << "BackTracker::DirectParentsFromClockTickWindows output: matched PMTs="
+            << fHitToDirectParents.size()
+            << ", pulsesChecked=" << total_pulses_checked
+            << ", tickMatches=" << total_tick_matches
+            << std::endl;
+
+  if (!fHitToDirectParents.empty()) {
+    auto it = fHitToDirectParents.begin();
+    std::cout << "BackTracker::DirectParentsFromClockTickWindows example: PMT " << it->first
+              << " has " << it->second.size() << " hit times with direct parent matches."
+              << std::endl;
+  }
 }
 
 
