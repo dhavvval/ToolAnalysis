@@ -45,7 +45,6 @@ bool BackTracker::Initialise(std::string configfile, DataModel &data){
   return true;
 }
 
-//------------------------------------------------------------------------------
 bool BackTracker::Execute()
 {
   if (!LoadFromStores())
@@ -62,6 +61,7 @@ bool BackTracker::Execute()
   fClusterPurity           ->clear();
   fClusterTotalCharge      ->clear();
   fParticleToTankTotalCharge.clear();
+  fHitToDirectParents      ->clear();
   SumParticleTankCharge();
 
   // Loop over the clusters and do the things
@@ -187,27 +187,10 @@ void BackTracker::MatchMCParticle(std::vector<MCHit> const &mchits, int &prtId, 
 
 void BackTracker::DirectParentsFromClockTickWindows()
 {
-  if (!fHitToDirectParents) return;
-  fHitToDirectParents->clear();
   if (!fPMTToDirectParentMap || !fRecoADCHits) return;
 
   const double prewindow_ns = static_cast<double>(fPMTSimPrewindowTicks) * NS_PER_ADC_SAMPLE;
   const double readout_ns = static_cast<double>(fPMTSimReadoutWindowTicks) * NS_PER_ADC_SAMPLE;
-
-  uint32_t evtNum = 0;
-  m_data->Stores.at("ANNIEEvent")->Get("EventNumber", evtNum);
-  std::cout << "BackTracker::DirectParentsFromClockTickWindows [event=" << evtNum << "] input:"
-            << " RecoADCHits PMTs=" << fRecoADCHits->size()
-            << ", PMTToDirectParentMap PMTs=" << fPMTToDirectParentMap->size()
-            << ", preTicks=" << fPMTSimPrewindowTicks
-            << ", readoutTicks=" << fPMTSimReadoutWindowTicks
-            << std::endl;
-
-  size_t total_pulses_checked = 0;
-  size_t total_tick_matches = 0;
-  size_t total_parent_ids_added = 0;
-  std::set<int> unique_parent_ids;
-  int debug_print_budget = 20;
 
   for (auto const& recoIt : *fRecoADCHits) {
     unsigned long pmtID = recoIt.first;
@@ -217,73 +200,29 @@ void BackTracker::DirectParentsFromClockTickWindows()
 
     std::map<uint16_t, std::vector<int>> const& hits_to_directparents_map = parentMapIt->second;
 
-    std::cout << "BackTracker::DirectParentsFromClockTickWindows PMT " << pmtID
-              << ": reco minibufs=" << recoIt.second.size()
-              << ", truth tick bins=" << hits_to_directparents_map.size()
-              << std::endl;
-
     for (std::vector<ADCPulse> const& minibufPulses : recoIt.second) {
       for (ADCPulse const& pulse : minibufPulses) {
-        ++total_pulses_checked;
         double pulseStart = pulse.start_time();
         double hitTime = pulse.peak_time();
 
         double tmin = pulseStart - prewindow_ns;
         double tmax = pulseStart + readout_ns;
 
-        if (debug_print_budget > 0) {
-          std::cout << "BackTracker::DirectParentsFromClockTickWindows pulse: PMT=" << pmtID
-                    << ", start=" << pulseStart
-                    << ", peak=" << hitTime
-                    << ", tmin=" << tmin
-                    << ", tmax=" << tmax
-                    << std::endl;
-          --debug_print_budget;
-        }
-
         for (auto const& apair : hits_to_directparents_map) {
           double mchitTime = static_cast<double>(apair.first) * NS_PER_ADC_SAMPLE;
 
           if (mchitTime > tmin && mchitTime < tmax) {
-            ++total_tick_matches;
             (*fHitToDirectParents)[pmtID][hitTime].insert(
               (*fHitToDirectParents)[pmtID][hitTime].end(),
               apair.second.begin(), apair.second.end());
-            total_parent_ids_added += apair.second.size();
-            unique_parent_ids.insert(apair.second.begin(), apair.second.end());
-
-            if (debug_print_budget > 0) {
-              std::cout << "BackTracker::DirectParentsFromClockTickWindows match: PMT=" << pmtID
-                        << ", mchitTime=" << mchitTime
-                        << ", tick=" << apair.first
-                        << ", nParentsAdded=" << apair.second.size()
-                        << std::endl;
-              --debug_print_budget;
-            }
           }
         }
       }
     }
   }
-
-  std::cout << "BackTracker::DirectParentsFromClockTickWindows output: matched PMTs="
-            << fHitToDirectParents->size()
-            << ", pulsesChecked=" << total_pulses_checked
-            << ", tickMatches=" << total_tick_matches
-            << ", parentIDsAdded=" << total_parent_ids_added
-            << ", uniqueParentIDs=" << unique_parent_ids.size()
-            << std::endl;
-
-  if (!fHitToDirectParents->empty()) {
-    auto it = fHitToDirectParents->begin();
-    std::cout << "BackTracker::DirectParentsFromClockTickWindows example: PMT " << it->first
-              << " has " << it->second.size() << " hit times with direct parent matches."
-              << std::endl;
-  }
 }
 
 
-//------------------------------------------------------------------------------
 bool BackTracker::LoadFromStores()
 {
   // Grab the stuff we need from the stores
