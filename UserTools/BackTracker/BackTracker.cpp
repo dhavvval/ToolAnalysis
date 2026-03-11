@@ -51,6 +51,7 @@ bool BackTracker::Execute()
     return false;
 
   if (fUsePulseWindowMatching) {
+    // Required tool order: PMTWaveformSim -> PhaseIIADCHitFinder -> BackTracker
     DirectParentsFromClockTickWindows();
   }
 
@@ -190,8 +191,10 @@ void BackTracker::DirectParentsFromClockTickWindows()
   const double prewindow_ns = static_cast<double>(fPMTSimPrewindowTicks) * NS_PER_ADC_SAMPLE;
   const double readout_ns = static_cast<double>(fPMTSimReadoutWindowTicks) * NS_PER_ADC_SAMPLE;
 
-  std::cout << "BackTracker::DirectParentsFromClockTickWindows input: RecoADCHits PMTs="
-            << fRecoADCHits->size()
+  uint32_t evtNum = 0;
+  m_data->Stores.at("ANNIEEvent")->Get("EventNumber", evtNum);
+  std::cout << "BackTracker::DirectParentsFromClockTickWindows [event=" << evtNum << "] input:"
+            << " RecoADCHits PMTs=" << fRecoADCHits->size()
             << ", PMTToDirectParentMap PMTs=" << fPMTToDirectParentMap->size()
             << ", preTicks=" << fPMTSimPrewindowTicks
             << ", readoutTicks=" << fPMTSimReadoutWindowTicks
