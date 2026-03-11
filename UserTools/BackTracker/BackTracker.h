@@ -66,7 +66,7 @@ class BackTracker: public Tool {
   std::map<double, std::vector<std::vector<int>>> *fClusterHitToDirectParentTrackIDs = nullptr;
 
   // PMT ID -> reco hit time -> direct parent track IDs
-  std::map<unsigned long, std::map<double, std::vector<int>>> fHitToDirectParents;
+  std::map<unsigned long, std::map<double, std::vector<int>>> *fHitToDirectParents = nullptr;
 
   bool fUsePulseWindowMatching = true;
   uint16_t fPMTSimPrewindowTicks = 10;
