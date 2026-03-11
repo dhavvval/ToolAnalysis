@@ -95,10 +95,10 @@ public:
 
   virtual ~MCHit(){};
 	
-  const std::vector<int>* GetParents() const { return &Parents; }
-  const std::vector<int>* GetDirectParents() const { return &DirectParents; }
-  int GetStartTick() const { return StartTick; }
-  int GetEndTick() const { return EndTick; }
+  const std::vector<int>* GetParents() { return &Parents; }
+  const std::vector<int>* GetDirectParents() { return &DirectParents; }
+  int GetStartTick() { return StartTick; }
+  int GetEndTick() { return EndTick; }
   
   void SetParents(std::vector<int> parentsin) { Parents = parentsin; }
   void SetDirectParents(std::vector<int> directparentsin) { DirectParents = directparentsin; }

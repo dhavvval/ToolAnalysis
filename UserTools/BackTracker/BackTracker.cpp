@@ -1,4 +1,5 @@
 #include "BackTracker.h"
+#include "ANNIEconstants.h"
 
 BackTracker::BackTracker():Tool(){}
 
@@ -27,6 +28,9 @@ bool BackTracker::Initialise(std::string configfile, DataModel &data){
     Log(logmessage, v_error, verbosity);
   }
 
+  bool gotUsePulseWindowMatching = m_variables.Get("UsePulseWindowMatching", fUsePulseWindowMatching);
+  if (!gotUsePulseWindowMatching) fUsePulseWindowMatching = true;
+
 
   // Set up the pointers we're going to save. No need to
   // delete them at Finalize, the store will handle it
@@ -35,7 +39,9 @@ bool BackTracker::Initialise(std::string configfile, DataModel &data){
   fClusterEfficiency        = new std::map<double, double>;
   fClusterPurity            = new std::map<double, double>;
   fClusterTotalCharge       = new std::map<double, double>;
-
+  fHitToDirectParents       = new std::map<unsigned long, std::map<double, std::vector<int>>>;
+  //fClusterHitToDirectParentTrackIDs = new std::map<double, std::vector<std::vector<int>>>;
+  
   return true;
 }
 
@@ -45,6 +51,11 @@ bool BackTracker::Execute()
   if (!LoadFromStores())
     return false;
 
+  if (fUsePulseWindowMatching) {
+    // Required tool order: PMTWaveformSim -> PhaseIIADCHitFinder -> BackTracker
+    DirectParentsFromClockTickWindows();
+  }
+
   fClusterToBestParticleID ->clear();
   fClusterToBestParticlePDG->clear();
   fClusterEfficiency       ->clear();
@@ -53,8 +64,7 @@ bool BackTracker::Execute()
   fParticleToTankTotalCharge.clear();
   SumParticleTankCharge();
 
-
-  // Loop over clusters for cluster-level truth matching (efficiency, purity, best particle)
+  // Loop over the clusters and do the things
   for (std::pair<double, std::vector<MCHit>>&& apair : *fClusterMapMC) {
     int prtId = -5;
     int prtPdg = -5;
@@ -69,6 +79,7 @@ bool BackTracker::Execute()
     fClusterEfficiency       ->emplace(apair.first, eff);
     fClusterPurity           ->emplace(apair.first, pur);
     fClusterTotalCharge      ->emplace(apair.first, totalCharge);
+
   }
 
 
@@ -77,6 +88,7 @@ bool BackTracker::Execute()
   m_data->Stores.at("ANNIEEvent")->Set("ClusterEfficiency",        fClusterEfficiency       );
   m_data->Stores.at("ANNIEEvent")->Set("ClusterPurity",            fClusterPurity           );
   m_data->Stores.at("ANNIEEvent")->Set("ClusterTotalCharge",       fClusterTotalCharge      );
+  m_data->Stores.at("ANNIEEvent")->Set("HitToDirectParents",       fHitToDirectParents      );
 
   return true;
 }
@@ -175,6 +187,104 @@ void BackTracker::MatchMCParticle(std::vector<MCHit> const &mchits, int &prtId, 
 
 }
 
+void BackTracker::DirectParentsFromClockTickWindows()
+{
+  if (!fHitToDirectParents) return;
+  fHitToDirectParents->clear();
+  if (!fPMTToDirectParentMap || !fRecoADCHits) return;
+
+  const double prewindow_ns = static_cast<double>(fPMTSimPrewindowTicks) * NS_PER_ADC_SAMPLE;
+  const double readout_ns = static_cast<double>(fPMTSimReadoutWindowTicks) * NS_PER_ADC_SAMPLE;
+
+  uint32_t evtNum = 0;
+  m_data->Stores.at("ANNIEEvent")->Get("EventNumber", evtNum);
+  std::cout << "BackTracker::DirectParentsFromClockTickWindows [event=" << evtNum << "] input:"
+            << " RecoADCHits PMTs=" << fRecoADCHits->size()
+            << ", PMTToDirectParentMap PMTs=" << fPMTToDirectParentMap->size()
+            << ", preTicks=" << fPMTSimPrewindowTicks
+            << ", readoutTicks=" << fPMTSimReadoutWindowTicks
+            << std::endl;
+
+  size_t total_pulses_checked = 0;
+  size_t total_tick_matches = 0;
+  size_t total_parent_ids_added = 0;
+  std::set<int> unique_parent_ids;
+  int debug_print_budget = 20;
+
+  for (auto const& recoIt : *fRecoADCHits) {
+    unsigned long pmtID = recoIt.first;
+
+    auto parentMapIt = fPMTToDirectParentMap->find(pmtID);
+    if (parentMapIt == fPMTToDirectParentMap->end()) continue;
+
+    std::map<uint16_t, std::vector<int>> const& hits_to_directparents_map = parentMapIt->second;
+
+    std::cout << "BackTracker::DirectParentsFromClockTickWindows PMT " << pmtID
+              << ": reco minibufs=" << recoIt.second.size()
+              << ", truth tick bins=" << hits_to_directparents_map.size()
+              << std::endl;
+
+    for (std::vector<ADCPulse> const& minibufPulses : recoIt.second) {
+      for (ADCPulse const& pulse : minibufPulses) {
+        ++total_pulses_checked;
+        double pulseStart = pulse.start_time();
+        double hitTime = pulse.peak_time();
+
+        double tmin = pulseStart - prewindow_ns;
+        double tmax = pulseStart + readout_ns;
+
+        if (debug_print_budget > 0) {
+          std::cout << "BackTracker::DirectParentsFromClockTickWindows pulse: PMT=" << pmtID
+                    << ", start=" << pulseStart
+                    << ", peak=" << hitTime
+                    << ", tmin=" << tmin
+                    << ", tmax=" << tmax
+                    << std::endl;
+          --debug_print_budget;
+        }
+
+        for (auto const& apair : hits_to_directparents_map) {
+          double mchitTime = static_cast<double>(apair.first) * NS_PER_ADC_SAMPLE;
+
+          if (mchitTime > tmin && mchitTime < tmax) {
+            ++total_tick_matches;
+            (*fHitToDirectParents)[pmtID][hitTime].insert(
+              (*fHitToDirectParents)[pmtID][hitTime].end(),
+              apair.second.begin(), apair.second.end());
+            total_parent_ids_added += apair.second.size();
+            unique_parent_ids.insert(apair.second.begin(), apair.second.end());
+
+            if (debug_print_budget > 0) {
+              std::cout << "BackTracker::DirectParentsFromClockTickWindows match: PMT=" << pmtID
+                        << ", mchitTime=" << mchitTime
+                        << ", tick=" << apair.first
+                        << ", nParentsAdded=" << apair.second.size()
+                        << std::endl;
+              --debug_print_budget;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  std::cout << "BackTracker::DirectParentsFromClockTickWindows output: matched PMTs="
+            << fHitToDirectParents->size()
+            << ", pulsesChecked=" << total_pulses_checked
+            << ", tickMatches=" << total_tick_matches
+            << ", parentIDsAdded=" << total_parent_ids_added
+            << ", uniqueParentIDs=" << unique_parent_ids.size()
+            << std::endl;
+
+  if (!fHitToDirectParents->empty()) {
+    auto it = fHitToDirectParents->begin();
+    std::cout << "BackTracker::DirectParentsFromClockTickWindows example: PMT " << it->first
+              << " has " << it->second.size() << " hit times with direct parent matches."
+              << std::endl;
+  }
+}
+
+
 //------------------------------------------------------------------------------
 bool BackTracker::LoadFromStores()
 {
@@ -209,13 +319,24 @@ bool BackTracker::LoadFromStores()
     return false;
   }
 
-  // Read MCHitsWithTicks (original per-photon hits saved by PMTWaveformSim before ClusterFinder runs)
-  // Not fatal if absent — per-MCHit parent matching will simply be skipped
-  bool goodMCHitsWithTicks = m_data->Stores.at("ANNIEEvent")->Get("MCHitsWithTicks", fMCHitsWithTicks);
-  if (!goodMCHitsWithTicks) {
-    logmessage = "BackTracker: MCHitsWithTicks not found in ANNIEEvent. Per-MCHit parent matching will be unavailable.";
-    Log(logmessage, v_warning, verbosity);
-    fMCHitsWithTicks = nullptr;
+  if (fUsePulseWindowMatching) {
+    bool gotDirectParentMap = m_data->Stores.at("ANNIEEvent")->Get("PMTToDirectParentMap", fPMTToDirectParentMap);
+    bool gotRecoADCHits = m_data->Stores.at("ANNIEEvent")->Get("RecoADCHits", fRecoADCHits);
+    if (!gotDirectParentMap || !gotRecoADCHits) {
+      logmessage = "BackTracker: PMTToDirectParentMap or RecoADCHits missing, disabling pulse-window matching for this event.";
+      Log(logmessage, v_warning, verbosity);
+      fPMTToDirectParentMap = nullptr;
+      fRecoADCHits = nullptr;
+    }
+
+    uint16_t prewindowTicks = fPMTSimPrewindowTicks;
+    uint16_t readoutTicks = fPMTSimReadoutWindowTicks;
+    if (m_data->Stores.at("ANNIEEvent")->Get("PMTSimPrewindowTicks", prewindowTicks)) {
+      fPMTSimPrewindowTicks = prewindowTicks;
+    }
+    if (m_data->Stores.at("ANNIEEvent")->Get("PMTSimReadoutWindowTicks", readoutTicks)) {
+      fPMTSimReadoutWindowTicks = readoutTicks;
+    }
   }
 
   return true;
