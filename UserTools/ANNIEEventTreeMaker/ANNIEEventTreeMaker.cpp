@@ -1394,7 +1394,6 @@ void ANNIEEventTreeMaker::LoadAllTankHits()
 
 // **************MCHit Directparent TrackIDs Info ************************** //
 
-LoadDirectParentIDsMCHits
 void ANNIEEventTreeMaker::LoadDirectParentIDsMCHits(){
   //I will make changes here//
   //It will help me to store the information about the direct parent track IDs for each MCHit in the tree
