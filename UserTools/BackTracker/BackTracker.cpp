@@ -188,16 +188,16 @@ void BackTracker::MatchMCParticle(std::vector<MCHit> const &mchits, int &prtId, 
 
 void BackTracker::DirectParentsFromClockTickWindows()
 {
-  if (!fPMTToDirectParentMap || !fRecoADCHits) return;
+  if (fPMTToDirectParentMap.empty() || fRecoADCHits.empty()) return;
 
   const double prewindow_ns = static_cast<double>(fPMTSimPrewindowTicks) * NS_PER_ADC_SAMPLE;
   const double readout_ns = static_cast<double>(fPMTSimReadoutWindowTicks) * NS_PER_ADC_SAMPLE;
 
-  for (auto const& recoIt : *fRecoADCHits) {
+  for (auto const& recoIt : fRecoADCHits) {
     unsigned long pmtID = recoIt.first;
 
-    auto parentMapIt = fPMTToDirectParentMap->find(pmtID);
-    if (parentMapIt == fPMTToDirectParentMap->end()) continue;
+    auto parentMapIt = fPMTToDirectParentMap.find(pmtID);
+    if (parentMapIt == fPMTToDirectParentMap.end()) continue;
 
     std::map<uint16_t, std::vector<int>> const& hits_to_directparents_map = parentMapIt->second;
 
@@ -264,19 +264,20 @@ bool BackTracker::LoadFromStores()
   }
 
   if (fUsePulseWindowMatching) {
+    fPMTToDirectParentMap.clear();
+    fRecoADCHits.clear();
+
     bool gotDirectParentMap = m_data->Stores.at("ANNIEEvent")->Get("PMTToDirectParentMap", fPMTToDirectParentMap);
     if (!gotDirectParentMap) {
       logmessage = "BackTracker: PMTToDirectParentMap missing, disabling pulse-window matching for this event.";
       Log(logmessage, v_warning, verbosity);
-      fPMTToDirectParentMap = nullptr;
     }
 
     bool gotRecoADCHits = m_data->Stores.at("ANNIEEvent")->Get("RecoADCHits", fRecoADCHits);
-    if ( !gotRecoADCHits) {
-      logmessage = "BackTracker:RecoADCHits missing, disabling pulse-window matching for this event.";
+    if (!gotRecoADCHits) {
+      logmessage = "BackTracker: RecoADCHits missing, disabling pulse-window matching for this event.";
       Log(logmessage, v_warning, verbosity);
-      fRecoADCHits = nullptr;
-    }  
+    }
 
     uint16_t prewindowTicks = fPMTSimPrewindowTicks;
     uint16_t readoutTicks = fPMTSimReadoutWindowTicks;

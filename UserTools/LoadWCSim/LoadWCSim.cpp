@@ -1112,13 +1112,6 @@ void LoadWCSim::LoadMCParticles(WCSimRootTrigger* firstTrig)
 		Log(logmessage, v_message, verbosity);	
 
 		auto* nextTrack = (WCSimRootTrack*)aTrigTank->GetTracks()->At(trackIdx);
-		std::cout << "DEBUGGING: Track: " << trackIdx
-			  << "| Track Flag: " << nextTrack->GetFlag() 
-              << " | ID: " << nextTrack->GetId()
-              << " | PDG: " << nextTrack->GetIpnu() 
-              << " | ParentID: " << nextTrack->GetPrimaryParentID() 
-              << " | DirectParentID: " << nextTrack->GetDirectParentID() 
-              << std::endl;
 		tracktype startStopType = tracktype::UNDEFINED;
 
 		// Extract the neutrino information
@@ -1400,12 +1393,6 @@ bool LoadWCSim::LoadHits(WCSimRootTrigger* thisTrig, WCSimRootTrigger* firstTrig
     
     // Create the hit and put it in the correct map
     std::pair<std::vector<int>, std::vector<int>> hitParentIDs = GetHitParentIDs(digiHit, firstTrig);
-  
-    std::cout << "[LoadWCSim DEBUG] tubeID=" << tubeID << " | first(primary IDs): ";
-    for (int id : hitParentIDs.first) std::cout << id << " ";
-    std::cout << "| second(direct IDs): ";
-    for (int id : hitParentIDs.second) std::cout << id << " ";
-    std::cout << std::endl;
 
     MCHit nextHit(key, digiTime, digiQ, hitParentIDs.first, hitParentIDs.second);
 
