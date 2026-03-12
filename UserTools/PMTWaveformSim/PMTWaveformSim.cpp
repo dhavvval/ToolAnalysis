@@ -187,9 +187,9 @@ bool PMTWaveformSim::Execute()
       uint16_t start_clocktick = (t0_ticks > fPrewindow)? t0_ticks - fPrewindow : 0;
       uint16_t end_clocktick = start_clocktick + fReadoutWindow;
 
-	  // Put these ticks into the actual MCHit
-	  mcHit.SetStartTick(start_clocktick);
-	  mcHit.SetEndTick(end_clocktick);
+	    // Put these ticks into the actual MCHit
+	    mcHit.SetStartTick(start_clocktick);
+	    mcHit.SetEndTick(end_clocktick);
 	  
       // Randomly Sample the PMT parameters for each MCHit
       SampleFitParameters(PMTID);
@@ -240,7 +240,7 @@ bool PMTWaveformSim::Execute()
         if (sample_map.empty()) continue;
 
 
-    size_t total_direct_ids = 0;
+    /*size_t total_direct_ids = 0;
     for (const auto& kv : hits_to_directparents_map) total_direct_ids += kv.second.size();
 
     size_t total_primary_ids = 0;
@@ -253,7 +253,7 @@ bool PMTWaveformSim::Execute()
               << " primary_ticks=" << hits_to_primaryparents_map.size()
               << " direct_ids_total=" << total_direct_ids
               << " primary_ids_total=" << total_primary_ids
-              << std::endl;
+              << std::endl; */
         
     
     // Set the noise envelope and baseline for this PMT

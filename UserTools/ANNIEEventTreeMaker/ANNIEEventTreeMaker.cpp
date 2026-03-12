@@ -46,6 +46,7 @@ bool ANNIEEventTreeMaker::Initialise(std::string configfile, DataModel &data)
   m_variables.Get("LAPPD_Waveform_fill", LAPPD_Waveform_fill);
   m_variables.Get("LAPPD_MC_fill", LAPPD_MC_fill);
   m_variables.Get("RingCounting_fill", RingCounting_fill);
+  m_variables.Get("DirectParent_MCHit_fill", DirectParent_MCHit_fill);
 
   std::string output_filename = "ANNIEEventTree.root";
   m_variables.Get("OutputFile", output_filename);
@@ -179,6 +180,13 @@ bool ANNIEEventTreeMaker::Initialise(std::string configfile, DataModel &data)
     fANNIETree->Branch("hitChankey", &fHitChankey);
     fANNIETree->Branch("hitChankeyMC", &fHitChankeyMC);
     fANNIETree->Branch("hitPMTType", &fHitPMTType);
+  }
+
+  if (DirectParent_MCHit_fill){
+    fANNIETree->Branch("DirectParent_PMTID", &fDirectParent_PMTID);
+    fANNIETree->Branch("DirectParent_HitTime", &fDirectParent_HitTime);
+    fANNIETree->Branch("DirectParent_TrackIDs", &fDirectParent_TrackIDs);
+    fANNIETree->Branch("DirectParent_PDGs", &fDirectParent_PDGs);
   }
 
   if (SiPMPulseInfo_fill)
@@ -596,6 +604,12 @@ bool ANNIEEventTreeMaker::Execute()
     // this will fill all hits in this event
     LoadAllTankHits();
   }
+
+  //****************************** Fill MCHit DirectParent TrackIDs Info *************************************//
+  if (DirectParent_MCHit_fill)
+  {
+    LoadDirectParentIDsMCHits();
+  }
   if (SiPMPulseInfo_fill)
   {
     LoadSiPMHits();
@@ -751,6 +765,12 @@ void ANNIEEventTreeMaker::ResetVariables()
   fHitChankey.clear();
   fHitChankeyMC.clear();
   fHitPMTType.clear();
+
+  // MCHit DirectParent TrackIDs info
+  fDirectParent_PMTID.clear();
+  fDirectParent_HitTime.clear();
+  fDirectParent_TrackIDs.clear();
+  fDirectParent_PDGs.clear();
 
   // SiPMPulse Info
   fSiPM1NPulses = 0;
@@ -1370,6 +1390,33 @@ void ANNIEEventTreeMaker::LoadAllTankHits()
     }
   }
   return;
+}
+
+// **************MCHit Directparent TrackIDs Info ************************** //
+
+LoadDirectParentIDsMCHits
+void ANNIEEventTreeMaker::LoadDirectParentIDsMCHits(){
+  //I will make changes here//
+  //It will help me to store the information about the direct parent track IDs for each MCHit in the tree
+  Log("ANNIEEventTreeMaker Tool: LoadDirectParentIDsMCHits", v_debug, ANNIEEventTreeMakerVerbosity);
+  std::map<unsigned long, std::map<double, std::vector<int>>> *MCHitToDirectParents = nullptr;
+
+  bool got_MCHitToDirectParents = m_data->Store["ANNIEEvent"]->Get("MCHitToDirectParents", fMCHitToDirectParents);
+  if (!got_MCHitToDirectParents)  {
+    std::cout << "No MCHitToDirectParents store in ANNIEEvent. Continuing to build tree " << std::endl;
+    return;
+  }
+  for (auto const& apair : *fMCHitToDirectParents) {
+    unsigned long pmtID = apair.first;
+    for (auto const& hit_directparent_pair : apair.second){
+      double hitTime = hit_directparent_pair.first;
+      std::vector<int> const& directparentids = hit_directparent_pair.second;
+
+      fDirectParent_PMTID.push_back(pmtID);
+      fDirectParent_HitTime.push_back(hitTime);
+      fDirectParent_TrackIDs.push_back(directparentids);
+    }
+  }
 }
 
 void ANNIEEventTreeMaker::LoadSiPMHits()

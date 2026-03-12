@@ -1,2 +1,2 @@
 verbosity 1
-UsePulseWindowMatching 1
+UseDirectParentClockTickMatching 1

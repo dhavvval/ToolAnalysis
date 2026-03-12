@@ -28,8 +28,8 @@ bool BackTracker::Initialise(std::string configfile, DataModel &data){
     Log(logmessage, v_error, verbosity);
   }
 
-  bool gotUsePulseWindowMatching = m_variables.Get("UsePulseWindowMatching", fUsePulseWindowMatching);
-  if (!gotUsePulseWindowMatching) fUsePulseWindowMatching = true;
+  bool gotUsePulseWindowMatching = m_variables.Get("UseDirectParentClockTickMatching", fDirectParentClockTickMatching);
+  if (!gotUsePulseWindowMatching) fDirectParentClockTickMatching = true;
 
 
   // Set up the pointers we're going to save. No need to 
@@ -58,9 +58,10 @@ bool BackTracker::Execute()
   fClusterTotalCharge      ->clear();
   fParticleToTankTotalCharge.clear();
   fHitToDirectParents      ->clear();
+
   SumParticleTankCharge();
 
-  if (fUsePulseWindowMatching) {
+  if (fDirectParentClockTickMatching) {
     // Required tool order: PMTWaveformSim -> PhaseIIADCHitFinder -> BackTracker
     DirectParentsFromClockTickWindows();
   }
@@ -218,15 +219,15 @@ void BackTracker::DirectParentsFromClockTickWindows()
               apair.second.begin(), apair.second.end());
           }
         }
-        std::cout << "BackTracker::DirectParentsFromClockTickWindows: PMT " << pmtID << ", hit time " << hitTime << " has direct parent IDs: ";
+       /* std::cout << "BackTracker::DirectParentsFromClockTickWindows: PMT " << pmtID << ", hit time " << hitTime << " has direct parent IDs: ";
         for (auto const& parent : (*fHitToDirectParents)[pmtID][hitTime]) {
           std::cout << parent << " ";
         }
-        std::cout << std::endl;
+        std::cout << std::endl; */
       }
     }
   }
-  std::cout << "BackTracker::DirectParentsFromClockTickWindows: finished matching direct parents to reco hits based on clock tick windows" << std::endl;
+  //std::cout << "BackTracker::DirectParentsFromClockTickWindows: finished matching direct parents to reco hits based on clock tick windows" << std::endl;
 }
 
 
@@ -263,7 +264,7 @@ bool BackTracker::LoadFromStores()
     return false;
   }
 
-  if (fUsePulseWindowMatching) {
+  if (fDirectParentClockTickMatching) {
     fPMTToDirectParentMap.clear();
     fRecoADCHits.clear();
 
