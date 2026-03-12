@@ -50,10 +50,6 @@ bool BackTracker::Execute()
   if (!LoadFromStores())
     return false;
 
-  if (fUsePulseWindowMatching) {
-    // Required tool order: PMTWaveformSim -> PhaseIIADCHitFinder -> BackTracker
-    DirectParentsFromClockTickWindows();
-  }
 
   fClusterToBestParticleID ->clear();
   fClusterToBestParticlePDG->clear();
@@ -63,6 +59,11 @@ bool BackTracker::Execute()
   fParticleToTankTotalCharge.clear();
   fHitToDirectParents      ->clear();
   SumParticleTankCharge();
+
+  if (fUsePulseWindowMatching) {
+    // Required tool order: PMTWaveformSim -> PhaseIIADCHitFinder -> BackTracker
+    DirectParentsFromClockTickWindows();
+  }
 
   // Loop over the clusters and do the things
   for (std::pair<double, std::vector<MCHit>>&& apair : *fClusterMapMC) {
@@ -217,9 +218,15 @@ void BackTracker::DirectParentsFromClockTickWindows()
               apair.second.begin(), apair.second.end());
           }
         }
+        std::cout << "BackTracker::DirectParentsFromClockTickWindows: PMT " << pmtID << ", hit time " << hitTime << " has direct parent IDs: ";
+        for (auto const& parent : (*fHitToDirectParents)[pmtID][hitTime]) {
+          std::cout << parent << " ";
+        }
+        std::cout << std::endl;
       }
     }
   }
+  std::cout << "BackTracker::DirectParentsFromClockTickWindows: finished matching direct parents to reco hits based on clock tick windows" << std::endl;
 }
 
 
@@ -258,13 +265,18 @@ bool BackTracker::LoadFromStores()
 
   if (fUsePulseWindowMatching) {
     bool gotDirectParentMap = m_data->Stores.at("ANNIEEvent")->Get("PMTToDirectParentMap", fPMTToDirectParentMap);
-    bool gotRecoADCHits = m_data->Stores.at("ANNIEEvent")->Get("RecoADCHits", fRecoADCHits);
-    if (!gotDirectParentMap || !gotRecoADCHits) {
-      logmessage = "BackTracker: PMTToDirectParentMap or RecoADCHits missing, disabling pulse-window matching for this event.";
+    if (!gotDirectParentMap) {
+      logmessage = "BackTracker: PMTToDirectParentMap missing, disabling pulse-window matching for this event.";
       Log(logmessage, v_warning, verbosity);
       fPMTToDirectParentMap = nullptr;
-      fRecoADCHits = nullptr;
     }
+
+    bool gotRecoADCHits = m_data->Stores.at("ANNIEEvent")->Get("RecoADCHits", fRecoADCHits);
+    if ( !gotRecoADCHits) {
+      logmessage = "BackTracker:RecoADCHits missing, disabling pulse-window matching for this event.";
+      Log(logmessage, v_warning, verbosity);
+      fRecoADCHits = nullptr;
+    }  
 
     uint16_t prewindowTicks = fPMTSimPrewindowTicks;
     uint16_t readoutTicks = fPMTSimReadoutWindowTicks;
