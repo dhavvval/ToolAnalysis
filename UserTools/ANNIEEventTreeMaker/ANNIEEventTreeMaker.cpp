@@ -1398,7 +1398,7 @@ void ANNIEEventTreeMaker::LoadDirectParentIDsMCHits(){
   //I will make changes here//
   //It will help me to store the information about the direct parent track IDs for each MCHit in the tree
   Log("ANNIEEventTreeMaker Tool: LoadDirectParentIDsMCHits", v_debug, ANNIEEventTreeMakerVerbosity);
-  std::map<unsigned long, std::map<double, std::vector<int>>> *MCHitToDirectParents = nullptr;
+  std::map<unsigned long, std::map<double, std::vector<int>>> *fMCHitToDirectParents = nullptr;
 
   bool got_MCHitToDirectParents = m_data->Stores["ANNIEEvent"]->Get("MCHitToDirectParents", fMCHitToDirectParents);
   if (!got_MCHitToDirectParents)  {
