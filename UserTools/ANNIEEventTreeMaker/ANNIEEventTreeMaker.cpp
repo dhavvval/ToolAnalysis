@@ -1400,7 +1400,7 @@ void ANNIEEventTreeMaker::LoadDirectParentIDsMCHits(){
   Log("ANNIEEventTreeMaker Tool: LoadDirectParentIDsMCHits", v_debug, ANNIEEventTreeMakerVerbosity);
   std::map<unsigned long, std::map<double, std::vector<int>>> *MCHitToDirectParents = nullptr;
 
-  bool got_MCHitToDirectParents = m_data->Store["ANNIEEvent"]->Get("MCHitToDirectParents", fMCHitToDirectParents);
+  bool got_MCHitToDirectParents = m_data->Stores["ANNIEEvent"]->Get("MCHitToDirectParents", fMCHitToDirectParents);
   if (!got_MCHitToDirectParents)  {
     std::cout << "No MCHitToDirectParents store in ANNIEEvent. Continuing to build tree " << std::endl;
     return;
