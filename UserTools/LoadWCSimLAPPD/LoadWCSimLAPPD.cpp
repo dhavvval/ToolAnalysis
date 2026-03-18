@@ -291,6 +291,7 @@ bool LoadWCSimLAPPD::Execute(){
 					digits->Fill(relativedigitst);
 				}
 				std::vector<int> parents; // info about which particle generated the photon for this hit
+				std::vector<int> directparents; 
 				//#### Do I need to add the DirectParentId for the TrackId_to_MCParticleIndex lookup? 
 				// #### We may be interested in using TrackID_to_MCParticleIndex map for grabbing the pdg code of the given direct parent hit (DJA)
 				if(TrackId_to_MCParticleIndex->count(LAPPDEntry->lappdhit_primaryParentID2->at(runningcount))){
