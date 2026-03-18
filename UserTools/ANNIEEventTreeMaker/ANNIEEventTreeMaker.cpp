@@ -1399,12 +1399,27 @@ void ANNIEEventTreeMaker::LoadDirectParentIDsMCHits(){
   //It will help me to store the information about the direct parent track IDs for each MCHit in the tree
   Log("ANNIEEventTreeMaker Tool: LoadDirectParentIDsMCHits", v_debug, ANNIEEventTreeMakerVerbosity);
   std::map<unsigned long, std::map<double, std::vector<int>>> *fMCHitToDirectParents = nullptr;
+  std::vector<MCParticle> *fMCParticles = nullptr;
+  std::map<int, int> *fTrackIdToIndex = nullptr;
 
   bool got_MCHitToDirectParents = m_data->Stores["ANNIEEvent"]->Get("MCHitToDirectParents", fMCHitToDirectParents);
   if (!got_MCHitToDirectParents)  {
     std::cout << "No MCHitToDirectParents store in ANNIEEvent. Continuing to build tree " << std::endl;
     return;
   }
+
+  bool got_MCParticles = m_data->Stores["ANNIEEvent"]->Get("MCParticles", fMCParticles);
+  if (!got_MCParticles) {
+    Log"No MCParticles store in ANNIEEvent. Continuing to build tree " << std::endl;
+    return;
+  }
+
+  bool got_TrackIdToIndex = m_data->Stores["ANNIEEvent"]->Get("TrackId_to_MCParticleIndex", fTrackIdToIndex);
+  if (!got_TrackIdToIndex) {
+    Log"No TrackId_to_MCParticleIndex store in ANNIEEvent. Continuing to build tree " << std::endl;
+    return;
+  }
+
   for (auto const& apair : *fMCHitToDirectParents) {
     unsigned long pmtID = apair.first;
     for (auto const& hit_directparent_pair : apair.second){
@@ -1414,6 +1429,23 @@ void ANNIEEventTreeMaker::LoadDirectParentIDsMCHits(){
       fDirectParent_PMTID.push_back(pmtID);
       fDirectParent_HitTime.push_back(hitTime);
       fDirectParent_TrackIDs.push_back(directparentids);
+
+      std::vector<int> pdgcodes;
+      if (got_MCParticles && got_TrackIdToIndex){
+        for (int directparentid : directparentids){
+          auto it = fTrackIdToIndex->find(directparentid);
+          if (it != fTrackIdToIndex->end()) {
+            int MCParticleIndex = it->second;
+            int pdg = fMCParticles->at(MCParticleIndex).GetPdgCode();
+            pdgcodes.push_back(pdg);
+          }
+          else {
+            pdgcodes.push_back(-999);
+            std::cout << "NNIEEventTreeMaker: TrackID " + std::to_string(trackId) + " not found in TrackId_to_MCParticleIndex" << std::endl;
+          }
+        }
+      }
+      fDirectParent_PDGs.push_back(pdgcodes);
     }
   }
 }
