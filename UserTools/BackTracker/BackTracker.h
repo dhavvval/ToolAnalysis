@@ -42,7 +42,7 @@ class BackTracker: public Tool {
   std::map<double, std::vector<MCHit>>        *fClusterMapMC = nullptr;       ///< Clusters that we will be linking MCParticles to
   std::vector<MCParticle>                     *fMCParticles = nullptr;        ///< The true particles from the event
   std::map<int, int>                          *fMCParticleIndexMap = nullptr; ///< Map between the particle Id and it's position in MCParticles vector
-  std::map<unsigned long, std::map<uint16_t, std::vector<int>>> fPMTToDirectParentMap; ///< PMT -> t0 tick -> direct parent IDs
+  std::map<unsigned long, std::map<uint16_t, std::vector<int>>> fPMTToDirectParentMap; ///< PMT -> t0 tick -> direct parent IDs from PMTWaveformSim
   std::map<unsigned long, std::vector<std::vector<ADCPulse>>> fRecoADCHits; ///< Reconstructed ADCPulses from PhaseIIADCHitFinder
 
   // We'll calculate this map from MCHit parent particle to the total charge deposited throughout the tank
@@ -65,7 +65,7 @@ class BackTracker: public Tool {
   // Cluster Time -> MCHit DirectParentIDs
   std::map<double, std::vector<std::vector<int>>> *fClusterHitToDirectParentTrackIDs = nullptr;
   // PMT ID -> reco hit time -> direct parent track IDs
-  std::map<unsigned long, std::map<double, std::vector<int>>> *fHitToDirectParents = nullptr;
+  std::map<unsigned long, std::map<double, std::vector<int>>> *fMCHitToDirectParents = nullptr;
 
   bool fDirectParentClockTickMatching = true;
   uint16_t fPMTSimPrewindowTicks = 10;

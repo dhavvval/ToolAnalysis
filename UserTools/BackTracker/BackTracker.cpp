@@ -39,7 +39,7 @@ bool BackTracker::Initialise(std::string configfile, DataModel &data){
   fClusterEfficiency        = new std::map<double, double>;
   fClusterPurity            = new std::map<double, double>;
   fClusterTotalCharge       = new std::map<double, double>;
-  fHitToDirectParents       = new std::map<unsigned long, std::map<double, std::vector<int>>>;
+  fMCHitToDirectParents       = new std::map<unsigned long, std::map<double, std::vector<int>>>;
   //fClusterHitToDirectParentTrackIDs = new std::map<double, std::vector<std::vector<int>>>;
   
   return true;
@@ -57,7 +57,7 @@ bool BackTracker::Execute()
   fClusterPurity           ->clear();
   fClusterTotalCharge      ->clear();
   fParticleToTankTotalCharge.clear();
-  fHitToDirectParents      ->clear();
+  fMCHitToDirectParents      ->clear();
 
   SumParticleTankCharge();
 
@@ -89,7 +89,7 @@ bool BackTracker::Execute()
   m_data->Stores.at("ANNIEEvent")->Set("ClusterEfficiency",        fClusterEfficiency       );
   m_data->Stores.at("ANNIEEvent")->Set("ClusterPurity",            fClusterPurity           );
   m_data->Stores.at("ANNIEEvent")->Set("ClusterTotalCharge",       fClusterTotalCharge      );
-  m_data->Stores.at("ANNIEEvent")->Set("HitToDirectParents",       fHitToDirectParents      );
+  m_data->Stores.at("ANNIEEvent")->Set("MCHitToDirectParents",     fMCHitToDirectParents    );
 
   return true;
 }
@@ -214,13 +214,13 @@ void BackTracker::DirectParentsFromClockTickWindows()
           double mchitTime = static_cast<double>(apair.first) * NS_PER_ADC_SAMPLE;
 
           if (mchitTime > tmin && mchitTime < tmax) {
-            (*fHitToDirectParents)[pmtID][hitTime].insert(
-              (*fHitToDirectParents)[pmtID][hitTime].end(),
+            (*fMCHitToDirectParents)[pmtID][hitTime].insert(
+              (*fMCHitToDirectParents)[pmtID][hitTime].end(),
               apair.second.begin(), apair.second.end());
           }
         }
        /* std::cout << "BackTracker::DirectParentsFromClockTickWindows: PMT " << pmtID << ", hit time " << hitTime << " has direct parent IDs: ";
-        for (auto const& parent : (*fHitToDirectParents)[pmtID][hitTime]) {
+        for (auto const& parent : (*fMCHitToDirectParents)[pmtID][hitTime]) {
           std::cout << parent << " ";
         }
         std::cout << std::endl; */
