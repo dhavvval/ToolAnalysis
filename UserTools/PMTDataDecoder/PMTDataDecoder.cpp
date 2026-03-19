@@ -349,7 +349,9 @@ bool PMTDataDecoder::Execute(){
             }
             
             if(saveRWMRaw){
-            if(uCrateNum == 1 && uSlotNum == 15 && ChannelID == 3)
+	      //Temp fix for processing AmBe waveform (DJA)
+	      //if(uCrateNum == 1 && uSlotNum == 15 && ChannelID == 3) (This is the correct configuration for the RWM signal for beam runs, (DJA))
+	    if(uCrateNum == 1 && uSlotNum == 15 && ChannelID == 2)
             {
               std::vector<uint16_t> RWMWaveform = apair.second;
               (*RWMRawWaveforms)[timestamp] = RWMWaveform;
