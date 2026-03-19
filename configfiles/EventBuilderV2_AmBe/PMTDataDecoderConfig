@@ -1,5 +1,7 @@
-verbosity 1
+verbosity 2
 ADCCountsToBuildWaves 0
 Mode Offline
 OffsetVME03 0
 OffsetVME01 0
+saveRWMRaw 1
+saveBRFRaw 1
