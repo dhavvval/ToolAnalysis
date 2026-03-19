@@ -1410,13 +1410,13 @@ void ANNIEEventTreeMaker::LoadDirectParentIDsMCHits(){
 
   bool got_MCParticles = m_data->Stores["ANNIEEvent"]->Get("MCParticles", fMCParticles);
   if (!got_MCParticles) {
-    Log"No MCParticles store in ANNIEEvent. Continuing to build tree " << std::endl;
+    std::cout << "No MCParticles store in ANNIEEvent. Continuing to build tree " << std::endl;
     return;
   }
 
   bool got_TrackIdToIndex = m_data->Stores["ANNIEEvent"]->Get("TrackId_to_MCParticleIndex", fTrackIdToIndex);
   if (!got_TrackIdToIndex) {
-    Log"No TrackId_to_MCParticleIndex store in ANNIEEvent. Continuing to build tree " << std::endl;
+    std::cout << "No TrackId_to_MCParticleIndex store in ANNIEEvent. Continuing to build tree " << std::endl;
     return;
   }
 
@@ -1441,7 +1441,7 @@ void ANNIEEventTreeMaker::LoadDirectParentIDsMCHits(){
           }
           else {
             pdgcodes.push_back(-999);
-            std::cout << "NNIEEventTreeMaker: TrackID " + std::to_string(trackId) + " not found in TrackId_to_MCParticleIndex" << std::endl;
+            std::cout << "NNIEEventTreeMaker: TrackID " + std::to_string(directparentid) + " not found in TrackId_to_MCParticleIndex" << std::endl;
           }
         }
       }
