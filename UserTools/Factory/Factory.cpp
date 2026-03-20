@@ -186,13 +186,14 @@ if (tool=="ProcessedLAPPDFilter") ret=new ProcessedLAPPDFilter;
 if (tool=="BeamQuality") ret=new BeamQuality;
 if (tool=="FitRWMWaveform") ret=new FitRWMWaveform;
 if (tool=="LAPPDLoadTXT") ret=new LAPPDLoadTXT;
-if (tool=="LAPPDBSCharging") ret=new LAPPDBSCharging;
 if (tool=="MuonFitter") ret=new MuonFitter;
 if (tool=="BackTracker") ret=new BackTracker;
 if (tool=="PrintDQ") ret=new PrintDQ;
 if (tool=="AssignBunchTimingMC") ret=new AssignBunchTimingMC;
 if (tool=="PMTWaveformSim") ret=new PMTWaveformSim;
 if (tool=="LAPPDWaveformDisplay") ret=new LAPPDWaveformDisplay;
+if (tool=="ClusterSearcher") ret=new ClusterSearcher;
+if (tool=="NeutronCheck") ret=new NeutronCheck;
 if (tool=="PrintADCTraces") ret=new PrintADCTraces;
 return ret;
 }
