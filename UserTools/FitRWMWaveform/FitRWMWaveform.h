@@ -43,11 +43,16 @@ private:
     int maxPrintNumber;
     std::string output_filename;
 
+    // Configuration option to select waveform source
+    bool useAmBeWaveform;  // If true, use AmBe waveform instead of RWM
+
     std::vector<uint16_t> RWMRawWaveform;
     std::vector<uint16_t> BRFRawWaveform;
+    std::vector<uint16_t> AmBeRawWaveform; 
 
     std::map<uint64_t, std::vector<uint16_t>> ToBePrintedRWMWaveforms;
     std::map<uint64_t, std::vector<uint16_t>> ToBePrintedBRFWaveforms;
+    std::map<uint64_t, std::vector<uint16_t>> ToBePrintedAmBeWaveforms;  
 
     double RWMRisingStart;
     double RWMRisingEnd;

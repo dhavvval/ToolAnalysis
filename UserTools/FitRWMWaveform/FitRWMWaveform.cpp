@@ -19,6 +19,13 @@ bool FitRWMWaveform::Initialise(std::string configfile, DataModel &data)
   output_filename = "RWMBRFWaveforms.root";
   m_variables.Get("output_filename", output_filename);
 
+  // Configuration option to use AmBe waveform instead of RWM
+  useAmBeWaveform = false;
+  m_variables.Get("useAmBeWaveform", useAmBeWaveform);
+  if(useAmBeWaveform) {
+    std::cout << "FitRWMWaveform: AmBe waveform processing enabled" << std::endl;
+  }
+
   return true;
 }
 
@@ -26,7 +33,14 @@ bool FitRWMWaveform::Execute()
 {
 
   Log("FitRWMWaveform: Execute()", v_debug, verbosityFitRWMWaveform);
-  m_data->Stores["ANNIEEvent"]->Get("RWMRawWaveform", RWMRawWaveform);
+
+  // Use the same key to retrieve RWM and BRF waveforms, if useAmBeWaveform is true, retrieve AmBe waveform instead of RWM waveform
+  if(useAmBeWaveform) {
+    m_data->Stores["ANNIEEvent"]->Get("AmBeRawWaveform", AmBeRawWaveform);
+    RWMRawWaveform = AmBeRawWaveform;
+  } else {
+    m_data->Stores["ANNIEEvent"]->Get("RWMRawWaveform", RWMRawWaveform);
+  }
   m_data->Stores["ANNIEEvent"]->Get("BRFRawWaveform", BRFRawWaveform);
 
   uint64_t WaveformTime = 0;
@@ -34,10 +48,15 @@ bool FitRWMWaveform::Execute()
 
   if (printToRootFile && ToBePrintedRWMWaveforms.size() < maxPrintNumber)
   {
-
-    ToBePrintedRWMWaveforms.emplace(WaveformTime, RWMRawWaveform);
+    if(useAmBeWaveform) {
+      ToBePrintedAmBeWaveforms.emplace(WaveformTime, AmBeRawWaveform);
+      Log("FitRWMWaveform: Execute(): Added AmBe waveforms to be printed to root file", v_debug, verbosityFitRWMWaveform);
+    } else {
+      ToBePrintedRWMWaveforms.emplace(WaveformTime, RWMRawWaveform);
+      Log("FitRWMWaveform: Execute(): Added RWM waveforms to be printed to root file", v_debug, verbosityFitRWMWaveform);
+    }
     ToBePrintedBRFWaveforms.emplace(WaveformTime, BRFRawWaveform);
-    Log("FitRWMWaveform: Execute(): Added RWM and BRF waveforms to be printed to root file", v_debug, verbosityFitRWMWaveform);
+    Log("FitRWMWaveform: Execute(): AddedBRF waveforms to be printed to root file", v_debug, verbosityFitRWMWaveform);
   }
 
   RWMRisingStart = 0;
@@ -45,7 +64,6 @@ bool FitRWMWaveform::Execute()
   RWMHalfRising = 0;
   RWMFHWM = 0;
   RWMFirstPeak = 0;
-
   BRFFirstPeak = 0;
   BRFAveragePeak = 0;
   BRFFirstPeakFit = 0;
@@ -88,6 +106,22 @@ bool FitRWMWaveform::Finalise()
       hRWM->Write();
       delete hRWM;
       RWMCount++;
+    }
+
+    // Save AmBe waveforms
+    int AmBeCount = 0;
+    for (const auto &kv : ToBePrintedAmBeWaveforms)
+    {
+      const auto &key = kv.first;
+      const auto &val = kv.second;
+      TH1D *hAmBe = new TH1D(Form("AmBe_%d_%lu", AmBeCount, key), Form("AmBe_%d_%lu", AmBeCount, key), val.size(), 0, val.size());
+      for (int i = 0; i < val.size(); i++)
+      {
+        hAmBe->SetBinContent(i + 1, val[i]); // Note the 1-based index
+      }
+      hAmBe->Write();
+      delete hAmBe;
+      AmBeCount++;
     }
 
     int BRFCount = 0;

@@ -1,3 +1,4 @@
 verbosityFitRWMWaveform 0
 maxPrintNumber 100000
 printToRootFile 1
+useAmBeWaveform 1 #Incase of AmBe waveform processing 
