@@ -39,6 +39,8 @@ bool EBSaver::Initialise(std::string configfile, DataModel &data)
   m_variables.Get("saveRawBRFWaveform", saveRawBRFWaveform);
   saveRawRWMWaveform = true;
   m_variables.Get("saveRawRWMWaveform", saveRawRWMWaveform);
+  saveRawAmBeWaveform = false;  // Default to false - only enable when processing AmBe data in configfiles
+  m_variables.Get("saveRawAmBeWaveform", saveRawAmBeWaveform);
 
   ANNIEEvent = new BoostStore(false, 2);
 
@@ -73,6 +75,7 @@ bool EBSaver::Initialise(std::string configfile, DataModel &data)
 
   RWMRawWaveforms = new std::map<uint64_t, std::vector<uint16_t>>;
   BRFRawWaveforms = new std::map<uint64_t, std::vector<uint16_t>>;
+  AmBeRawWaveforms = new std::map<uint64_t, std::vector<uint16_t>>;
 
   if (saveBeamInfo)
   {
@@ -795,6 +798,23 @@ bool EBSaver::SavePMTData(uint64_t PMTTime)
       Log("EBSaver: Saved empty BRF data with PMTTime " + std::to_string(PMTTime), v_debug, verbosityEBSaver);
     }
   }
+  if (saveRawAmBeWaveform)
+  {
+    // find PMTTime as key in AmBeRawWaveforms, if found, save it, if not, save an empty vector
+    if (AmBeRawWaveforms->find(PMTTime) != AmBeRawWaveforms->end() && AmBeRawWaveforms->at(PMTTime).size() > 0)
+    {
+      std::vector<uint16_t> AmBeRawWaveform = AmBeRawWaveforms->at(PMTTime);
+      ANNIEEvent->Set("AmBeRawWaveform", AmBeRawWaveform);
+      Log("EBSaver: Saved AmBe data with PMTTime " + std::to_string(PMTTime), v_debug, verbosityEBSaver);
+      AmBeRawWaveforms->erase(PMTTime);
+    }
+    else
+    {
+      std::vector<uint16_t> AmBeRawWaveform;
+      ANNIEEvent->Set("AmBeRawWaveform", AmBeRawWaveform);
+      Log("EBSaver: Saved empty AmBe data with PMTTime " + std::to_string(PMTTime), v_debug, verbosityEBSaver);
+    }
+  }
 
   savedPMTHitMapNumber++;
 
@@ -1047,6 +1067,7 @@ bool EBSaver::GotAllDataFromOriginalBuffer()
   bool gotFRAS = m_data->CStore.Get("FinishedRawAcqSize", FinishedRawAcqSize); // Filled in PhaseIIADCCalibrator
   bool gotRWM = m_data->CStore.Get("RWMRawWaveforms", RWMRawWaveforms);
   bool gotBRF = m_data->CStore.Get("BRFRawWaveforms", BRFRawWaveforms);
+  bool gotAmBe = m_data->CStore.Get("AmBeRawWaveforms", AmBeRawWaveforms);
 
   if (!gotPMTHits || !gotPMTChkey || !gotIPRecoADCHits || !gotIPHitsAux || !gotIPRADCH || !gotFRAS)
   {
@@ -1197,6 +1218,7 @@ void EBSaver::SetDataObjects()
   m_data->CStore.Set("FinishedRawAcqSize", FinishedRawAcqSize);
   m_data->CStore.Set("RWMRawWaveforms", RWMRawWaveforms);
   m_data->CStore.Set("BRFRawWaveforms", BRFRawWaveforms);
+  m_data->CStore.Set("AmBeRawWaveforms", AmBeRawWaveforms);
   // set PMT match info
   m_data->CStore.Set("PairedPMTTriggerTimestamp", PairedPMTTriggerTimestamp);
   m_data->CStore.Set("PairedPMTTimeStamps", PairedPMTTimeStamps);

@@ -135,8 +135,10 @@ class PMTDataDecoder: public Tool {
   //option about whether to save raw RWM and BRF waveforms
   bool saveRWMRaw;
   bool saveBRFRaw;
+  bool saveAmBeRaw;
   std::map<uint64_t, std::vector<uint16_t>>* RWMRawWaveforms; //Key: MTCTime, Value: RWM waveform
   std::map<uint64_t, std::vector<uint16_t>>* BRFRawWaveforms; //Key: MTCTime, Value: BRF waveform
+  std::map<uint64_t, std::vector<uint16_t>>* AmBeRawWaveforms; //Key: MTCTime, Value: BRF waveform
 
 };
 

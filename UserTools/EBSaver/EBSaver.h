@@ -77,6 +77,7 @@ private:
 
     bool saveRawRWMWaveform;
     bool saveRawBRFWaveform;
+    bool saveRawAmBeWaveform;
 
     string savePath;
     string saveName;
@@ -140,6 +141,7 @@ private:
 
     std::map<uint64_t, std::vector<uint16_t>> *RWMRawWaveforms; // Key: MTCTime, Value: RWM waveform
     std::map<uint64_t, std::vector<uint16_t>> *BRFRawWaveforms; // Key: MTCTime, Value: BRF waveform
+    std::map<uint64_t, std::vector<uint16_t>> *AmBeRawWaveforms; // Key: MTCTime, Value: AmBe waveform
 
     std::map<int, vector<uint64_t>> PairedPMTTriggerTimestamp;
     std::map<int, vector<int>> PairedPMT_TriggerIndex;

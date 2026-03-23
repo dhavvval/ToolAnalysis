@@ -48,10 +48,13 @@ bool PMTDataDecoder::Initialise(std::string configfile, DataModel &data){
 
   saveRWMRaw = true;
   saveBRFRaw = true;
+  saveAmBeRaw = false;  // Default to false - only enable when processing AmBe data in the configfiles
   m_variables.Get("saveRWMRaw",saveRWMRaw);
   m_variables.Get("saveBRFRaw",saveBRFRaw);
+  m_variables.Get("saveAmBeRaw",saveAmBeRaw);
   RWMRawWaveforms = new std::map<uint64_t, std::vector<uint16_t>>;
   BRFRawWaveforms = new std::map<uint64_t, std::vector<uint16_t>>;
+  AmBeRawWaveforms = new std::map<uint64_t, std::vector<uint16_t>>;
 
   std::cout << "PMTDataDecoder Tool: Initialized successfully" << std::endl;
   return true;
@@ -313,7 +316,7 @@ bool PMTDataDecoder::Execute(){
     m_data->CStore.Set("TimestampsFromTheFuture",TimestampsFromTheFuture);
 
     // loop the FinishedPMTWaves, for each timestamp, put the RWM and BRF waveform to RWMRawWaveforms and BRFRawWaveforms
-    if(saveBRFRaw || saveRWMRaw)
+    if(saveBRFRaw || saveRWMRaw || saveAmBeRaw)
     {
       for (std::map<uint64_t, std::map<std::vector<int>, std::vector<uint16_t>>>::iterator it = FinishedPMTWaves->begin(); it != FinishedPMTWaves->end(); it++)
       {
@@ -376,12 +379,21 @@ bool PMTDataDecoder::Execute(){
             }
           }
 
+          if(saveAmBeRaw){
+            if(uCrateNum == 1 && uSlotNum == 15 && ChannelID == 2)
+            {
+              std::vector<uint16_t> AmBeWaveform = apair.second;
+              (*AmBeRawWaveforms)[timestamp] = AmBeWaveform;
+            }
+          }
+
 
         }
       }
     }
     m_data->CStore.Set("RWMRawWaveforms",RWMRawWaveforms);
     m_data->CStore.Set("BRFRawWaveforms",BRFRawWaveforms);
+    m_data->CStore.Set("AmBeRawWaveforms",AmBeRawWaveforms);
 
     //Check the size of the WaveBank to see if things are bloating
     Log("PMTDataDecoder Tool: Size of WaveBank (# waveforms partially built): " + 
