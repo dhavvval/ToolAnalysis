@@ -240,21 +240,6 @@ bool PMTWaveformSim::Execute()
         if (sample_map.empty()) continue;
 
 
-    /*size_t total_direct_ids = 0;
-    for (const auto& kv : hits_to_directparents_map) total_direct_ids += kv.second.size();
-
-    size_t total_primary_ids = 0;
-    for (const auto& kv : hits_to_primaryparents_map) total_primary_ids += kv.second.size();
-
-
-    std::cout << "PMTWaveformSim::ParentStore PMT summary: PMT=" << PMTID
-              << " sample_ticks=" << sample_map.size()
-              << " direct_ticks=" << hits_to_directparents_map.size()
-              << " primary_ticks=" << hits_to_primaryparents_map.size()
-              << " direct_ids_total=" << total_direct_ids
-              << " primary_ids_total=" << total_primary_ids
-              << std::endl; */
-        
     
     // Set the noise envelope and baseline for this PMT
     // The noise std dev appears to be normally distributed around 1 with sigma 0.25

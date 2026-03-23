@@ -1468,7 +1468,6 @@ void LoadWCSim::MakeParticleToPmtMap(WCSimRootTrigger* thistrig,
       auto* thehittimeobject = (WCSimRootCherenkovHitTime*)(firstTrig->GetCherenkovHitTimes()->At(thephotonsid));
 
       // get the parent ID from the CherenkovHitTime
-      //Int_t parentID = (thehittimeobject) ? thehittimeobject->GetParentID() : -1; 
       //I have changed GetParentID to GetDirectParentID in WCSimRootCherenkovHitTime, so this may need to be updated if we want direct parent IDs instead of primary parent IDs (DJA)
       Int_t parentID = (thehittimeobject) ? thehittimeobject->GetPrimaryParentID() : -1;
       Int_t directparentID = (thehittimeobject) ? thehittimeobject->GetDirectParentID() : -1;

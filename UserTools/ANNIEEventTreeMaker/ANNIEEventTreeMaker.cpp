@@ -1441,7 +1441,6 @@ void ANNIEEventTreeMaker::LoadDirectParentIDsMCHits(){
           }
           else {
             pdgcodes.push_back(-999);
-            std::cout << "NNIEEventTreeMaker: TrackID " + std::to_string(directparentid) + " not found in TrackId_to_MCParticleIndex" << std::endl;
           }
         }
       }
