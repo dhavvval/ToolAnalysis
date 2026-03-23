@@ -16,6 +16,7 @@ TankClusterProcessing 1
 MRDClusterProcessing 1
 TriggerProcessing 1
 TankHitInfo_fill 1
+DirectParent_MCHit_fill 1
 MRDHitInfo_fill 1
 MRDReco_fill 1
 SiPMPulseInfo_fill 0

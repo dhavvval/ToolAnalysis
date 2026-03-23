@@ -56,6 +56,7 @@ public:
     void LoadRWMBRFInfo();
 
     void LoadAllTankHits();
+    void LoadDirectParentIDsMCHits();
     void LoadSiPMHits();
 
     void LoadLAPPDInfo();
@@ -217,6 +218,13 @@ private:
     std::vector<int> fHitChankey;
     std::vector<int> fHitChankeyMC;
     std::vector<int> fHitPMTType;
+
+    // DirectParent_MCHit_fill
+    bool DirectParent_MCHit_fill = 0;
+    std::vector<unsigned long>  fDirectParent_PMTID;
+    std::vector<double> fDirectParent_HitTime;
+    std::vector<std::vector<int>> fDirectParent_TrackIDs;
+    std::vector<std::vector<int>> fDirectParent_PDGs;
 
     // SiPMPulseInfo_fill
     int fSiPM1NPulses;
