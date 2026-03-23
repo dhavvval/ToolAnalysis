@@ -40,7 +40,6 @@ bool BackTracker::Initialise(std::string configfile, DataModel &data){
   fClusterPurity            = new std::map<double, double>;
   fClusterTotalCharge       = new std::map<double, double>;
   fMCHitToDirectParents       = new std::map<unsigned long, std::map<double, std::vector<int>>>;
-  //fClusterHitToDirectParentTrackIDs = new std::map<double, std::vector<std::vector<int>>>;
   
   return true;
 }
@@ -50,14 +49,14 @@ bool BackTracker::Execute()
   if (!LoadFromStores())
     return false;
 
-
   fClusterToBestParticleID ->clear();
   fClusterToBestParticlePDG->clear();
   fClusterEfficiency       ->clear();
   fClusterPurity           ->clear();
   fClusterTotalCharge      ->clear();
+  fMCHitToDirectParents    ->clear();
+
   fParticleToTankTotalCharge.clear();
-  fMCHitToDirectParents      ->clear();
 
   SumParticleTankCharge();
 
@@ -219,15 +218,9 @@ void BackTracker::DirectParentsFromClockTickWindows()
               apair.second.begin(), apair.second.end());
           }
         }
-       /* std::cout << "BackTracker::DirectParentsFromClockTickWindows: PMT " << pmtID << ", hit time " << hitTime << " has direct parent IDs: ";
-        for (auto const& parent : (*fMCHitToDirectParents)[pmtID][hitTime]) {
-          std::cout << parent << " ";
-        }
-        std::cout << std::endl; */
       }
     }
   }
-  //std::cout << "BackTracker::DirectParentsFromClockTickWindows: finished matching direct parents to reco hits based on clock tick windows" << std::endl;
 }
 
 
