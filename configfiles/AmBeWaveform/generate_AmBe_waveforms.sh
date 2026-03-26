@@ -26,22 +26,32 @@ echo "Please make sure you have done the following:
 "
 sleep 5
 
-# Check if the user provided a run argument
+# Check if the user provided arguments
 if [[ -z "$1" ]]; then
     echo ""
 	echo "##############################"
-	echo "Error: No run number provided."
-    echo "Usage: $0 <run_number>"
+	echo "Error: No run number or run list file provided."
+    echo "Usage: $0 <run_number1> <run_number2> <run_number3> ..."
+	echo "   OR: $0 <run_list_file>"
+	echo "       where run_list_file contains one run number per line"
 	echo ""
     exit 1
 fi
 
+# Determine if first argument is a file or a run number
+if [[ -f "$1" ]]; then
+    # It's a file, so read runs from it
+    runs=($(cat "$1"))
+else
+    # It's not a file, so treat all arguments as run numbers
+    runs=("$@")
+fi
 
 #
 #
 #
 # ********************************************************************* #
-run=$1
+for run in "${runs[@]}"; do
 
 pro_dir="/pnfs/annie/persistent/processed/processed_EBV2/R${run}/"
 step_size=20
@@ -165,5 +175,7 @@ EOF
 echo ""
 echo "done"
 echo ""
+
+done
 
 done
