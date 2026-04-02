@@ -53,16 +53,18 @@ fi
 # ********************************************************************* #
 for run in "${runs[@]}"; do
 
-pro_dir="/pnfs/annie/persistent/processed/processed_EBV2/R${run}/"
+#pro_dir="/pnfs/annie/persistent/processed/processed_EBV2/R${run}/"
+#pro_dir="/exp/annie/app/users/dajana/EventBuild/R${run}/" 
+pro_dir="/pnfs/annie/persistent/users/dajana/AmBe/AmBe2.0v1/R${run}/"
 step_size=20
 
-user="<user>"
+user="dajana"
 
-TA_folder="ToolAnalysis/"
+TA_folder="EventBuild/"
 toolchain="AmBeWaveform"
 
-offload="/pnfs/annie/scratch/users/${user}/AmBe_dump/"
-
+#offload="/pnfs/annie/scratch/users/${user}/AmBe_dump/"
+offload="/pnfs/annie/persistent/users/${user}/AmBe/AmBe2.0v1/"
 # ********************************************************************* #
 #
 #
@@ -162,7 +164,7 @@ EOF
     echo "Copying ProcessedData Files..."
     echo ""
 
-	ifdh cp /exp/annie/app/users/$user/$TA_folder/RWMBRFWaveforms.root $offload/$run/AmBeWaveforms_${run}_p${p_start}_p${p_end}.root
+        cp /exp/annie/app/users/$user/$TA_folder/RWMBRFWaveforms.root $offload/$run/AmBeWaveforms_${run}_p${p_start}_p${p_end}.root
     sleep 1
 	rm -rf /exp/annie/app/users/$user/$TA_folder/RWMBRFWaveforms.root
 
