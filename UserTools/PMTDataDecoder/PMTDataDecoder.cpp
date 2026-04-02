@@ -352,13 +352,11 @@ bool PMTDataDecoder::Execute(){
             }
             
             if(saveRWMRaw){
-	      //Temp fix for processing AmBe waveform (DJA)
-	      //if(uCrateNum == 1 && uSlotNum == 15 && ChannelID == 3) (This is the correct configuration for the RWM signal for beam runs, (DJA))
-	    if(uCrateNum == 1 && uSlotNum == 15 && ChannelID == 2)
-            {
-              std::vector<uint16_t> RWMWaveform = apair.second;
-              (*RWMRawWaveforms)[timestamp] = RWMWaveform;
-            }
+	            if(uCrateNum == 1 && uSlotNum == 15 && ChannelID == 3) 
+              {
+                std::vector<uint16_t> RWMWaveform = apair.second;
+                (*RWMRawWaveforms)[timestamp] = RWMWaveform;
+              }
             }
           }else{
             // BRF is at crate 1, slot 15 , channel 1 after run 5870 (first run for beamyear 2025-2026)
@@ -380,17 +378,26 @@ bool PMTDataDecoder::Execute(){
           }
 
           if(saveAmBeRaw){
-            if(uCrateNum == 1 && uSlotNum == 15 && ChannelID == 2)
+            if (RunNumber >= 5680 && RunNumber <= 5854) //In the Summer 2025 AmBe run period, the AmBe PMT was kept in the same slot as the BRF. So, the AmBe waveform is at crate 1, slot 15, channel 1. (DJA)
             {
-              std::vector<uint16_t> AmBeWaveform = apair.second;
-              (*AmBeRawWaveforms)[timestamp] = AmBeWaveform;
+              if(uCrateNum == 1 && uSlotNum == 15 && ChannelID == 1)
+              {
+                std::vector<uint16_t> AmBeWaveform = apair.second;
+                (*AmBeRawWaveforms)[timestamp] = AmBeWaveform;
+              }
+            }
+            else {
+              if(uCrateNum == 1 && uSlotNum == 15 && ChannelID == 2)
+              {
+                std::vector<uint16_t> AmBeWaveform = apair.second;
+                (*AmBeRawWaveforms)[timestamp] = AmBeWaveform;
+              }
             }
           }
-
-
         }
       }
     }
+
     m_data->CStore.Set("RWMRawWaveforms",RWMRawWaveforms);
     m_data->CStore.Set("BRFRawWaveforms",BRFRawWaveforms);
     m_data->CStore.Set("AmBeRawWaveforms",AmBeRawWaveforms);
