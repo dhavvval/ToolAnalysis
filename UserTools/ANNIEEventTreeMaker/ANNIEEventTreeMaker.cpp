@@ -1436,17 +1436,11 @@ void ANNIEEventTreeMaker::LoadDirectParentIDsMCHits(){
           auto it = fTrackIdToIndex->find(directparentid);
           if (it != fTrackIdToIndex->end()) {
             int MCParticleIndex = it->second;
-            int pdg = fMCParticles->at(MCParticleIndex).GetPdgCode();
-            int parentPdg = fMCParticles->at(MCParticleIndex).GetParentPdg();
-            int particleID = fMCParticles->at(MCParticleIndex).GetParticleID();
-            int directParentIDFromMCParticle = fMCParticles->at(MCParticleIndex).GetDirectParentID();
+            int pdg = fMCParticles->at(MCParticleIndex).GetPdgCode();;
 
             std::cout << "DEBUG DirectParent | "
                       << "TrackID(from hit)=" << directparentid
-                      << ", MCParticle.ParticleID=" << particleID
                       << ", MCParticle.GetPdgCode()=" << pdg
-                      << ", MCParticle.GetParentPdg()=" << parentPdg
-                      << ", MCParticle.GetDirectParentID()=" << directParentIDFromMCParticle
                       << std::endl;
 
             pdgcodes.push_back(pdg);
