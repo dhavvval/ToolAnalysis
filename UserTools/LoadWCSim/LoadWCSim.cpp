@@ -1209,6 +1209,13 @@ void LoadWCSim::LoadMCParticles(WCSimRootTrigger* firstTrig)
       logmessage = "LoadWCSim::LoadMCParticles: Loaded " + std::to_string(MCParticles->size()) + " MCParticles";
       Log(logmessage, v_debug, verbosity);
     } // end loop over events
+
+  std::cout << "DEBUG: All saved Track IDs in trackid_to_mcparticleindex: ";
+    for (auto const& pair : *trackid_to_mcparticleindex) {
+      std::cout << pair.first << " ";
+      }
+      
+std::cout << std::endl;
   }// endif MCTriggerNum == 0
   else {
     // if MCTrigger > 0 we need to update all the particle times
