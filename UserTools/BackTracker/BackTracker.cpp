@@ -55,6 +55,7 @@ bool BackTracker::Execute()
   fClusterPurity           ->clear();
   fClusterTotalCharge      ->clear();
   fMCHitToDirectParents    ->clear();
+  fMCHitToNeutronAncestor  ->clear();
 
   fParticleToTankTotalCharge.clear();
 
@@ -63,6 +64,7 @@ bool BackTracker::Execute()
   if (fDirectParentClockTickMatching) {
     // Required tool order: PMTWaveformSim -> PhaseIIADCHitFinder -> BackTracker
     DirectParentsFromClockTickWindows();
+    FindNeutronAncestors();
   }
 
   // Loop over the clusters and do the things
@@ -89,6 +91,7 @@ bool BackTracker::Execute()
   m_data->Stores.at("ANNIEEvent")->Set("ClusterPurity",            fClusterPurity           );
   m_data->Stores.at("ANNIEEvent")->Set("ClusterTotalCharge",       fClusterTotalCharge      );
   m_data->Stores.at("ANNIEEvent")->Set("MCHitToDirectParents",     fMCHitToDirectParents    );
+  m_data->Stores.at("ANNIEEvent")->Set("MCHitToNeutronAncestor",   fMCHitToNeutronAncestor  );
 
   return true;
 }
@@ -222,6 +225,53 @@ void BackTracker::DirectParentsFromClockTickWindows()
     }
   }
 }
+
+void BackTracker::FindNeutronAncestors() {
+
+  fMCHitToNeutronAncestor = new std::map<unsigned long, std::map<double, int>>;
+
+  std::map<int, std::pair<int, int>> trackMap; // trackId -> (ParentID, pdg)
+  for (const auto& particle : *fMCParticles) {
+    int trackId = particle.GetParticleID();
+    int parentId = particle.GetDirectParentID();
+    int pdg = particle.GetPdgCode();
+
+    trackMap[trackId] = std::make_pair(parentId, pdg);
+  }
+
+  for (const auto& pmtPair : *fMCHitToDirectParents) {
+    unsigned long pmtID = pmtPair.first;
+    for (const auto& hitPair : pmtPair.second) {
+      double hitTime = hitPair.first;
+      const std::vector<int>& directParents = hitPair.second;
+
+      if (directParents.empty()) continue;
+
+      int neutronAncestorId = -5;
+      int startParentID = directParents[0]; // take the first direct parent as the starting point
+      int currentID = startParentID;
+
+      while (trackMap.find(currentID) != trackMap.end()) {
+        int parentID = trackMap[currentID].first;
+        int pdg = trackMap[currentID].second;
+
+        if (pdg == 2112 && neutronAncestorId == -5) { // if it's a neutron and we haven't already found an ancestor, save it
+          neutronAncestorId = currentID;
+          break; //We care about the immidiate neutron ancestor. 
+                //Do we want to find the potential primary neutron ancestor, if there is one? (DJA)
+        }
+
+        if (parentID == -1) break; // reached the end of the ancestry
+        currentID = parentID;
+      }
+
+      (*fMCHitToNeutronAncestor)[pmtID][hitTime] = neutronAncestorId;
+
+    }
+  }
+}
+
+std::cout << 'BackTracker::FindNeutronAncestory: finished finding neutron ancestors for MCHits with direct parents, found ' << fMCHitToNeutronAncestor->size() << " PMTs with direct parents and neutron ancestors." << std::endl;
 
 
 bool BackTracker::LoadFromStores()

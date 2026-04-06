@@ -34,6 +34,7 @@ class BackTracker: public Tool {
   void SumParticleTankCharge();
   void MatchMCParticle(std::vector<MCHit> const &mchits, int &prtId, int &prtPdg, double &eff, double &pur, double &totalCharge); ///< The meat and potatoes
   void DirectParentsFromClockTickWindows();
+  void FindNeutronAncestors();
   
  private:
 
@@ -66,6 +67,8 @@ class BackTracker: public Tool {
   std::map<double, std::vector<std::vector<int>>> *fClusterHitToDirectParentTrackIDs = nullptr;
   // PMT ID -> reco hit time -> direct parent track IDs
   std::map<unsigned long, std::map<double, std::vector<int>>> *fMCHitToDirectParents = nullptr;
+
+  std::map<unsigned long, std::map<double, int>> *fMCHitToNeutronAncestor = nullptr;
 
   bool fDirectParentClockTickMatching = true;
   uint16_t fPMTSimPrewindowTicks = 10;

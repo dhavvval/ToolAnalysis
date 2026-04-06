@@ -187,6 +187,7 @@ bool ANNIEEventTreeMaker::Initialise(std::string configfile, DataModel &data)
     fANNIETree->Branch("DirectParent_HitTime", &fDirectParent_HitTime);
     fANNIETree->Branch("DirectParent_TrackIDs", &fDirectParent_TrackIDs);
     fANNIETree->Branch("DirectParent_PDGs", &fDirectParent_PDGs);
+    fANNIETree->Branch("DirectParent_NeutronAncestor", &fDirectParent_NeutronAncestor);
   }
 
   if (SiPMPulseInfo_fill)
@@ -771,6 +772,7 @@ void ANNIEEventTreeMaker::ResetVariables()
   fDirectParent_HitTime.clear();
   fDirectParent_TrackIDs.clear();
   fDirectParent_PDGs.clear();
+  fDirectParent_NeutronAncestor.clear();
 
   // SiPMPulse Info
   fSiPM1NPulses = 0;
@@ -1401,6 +1403,7 @@ void ANNIEEventTreeMaker::LoadDirectParentIDsMCHits(){
   std::map<unsigned long, std::map<double, std::vector<int>>> *fMCHitToDirectParents = nullptr;
   std::vector<MCParticle> *fMCParticles = nullptr;
   std::map<int, int> *fTrackIdToIndex = nullptr;
+  std::map<unsigned long, std::map<double, int>> *fMCHitToNeutronAncestor = nullptr;
 
   bool got_MCHitToDirectParents = m_data->Stores["ANNIEEvent"]->Get("MCHitToDirectParents", fMCHitToDirectParents);
   if (!got_MCHitToDirectParents)  {
@@ -1417,6 +1420,12 @@ void ANNIEEventTreeMaker::LoadDirectParentIDsMCHits(){
   bool got_TrackIdToIndex = m_data->Stores["ANNIEEvent"]->Get("TrackId_to_MCParticleIndex", fTrackIdToIndex);
   if (!got_TrackIdToIndex) {
     std::cout << "No TrackId_to_MCParticleIndex store in ANNIEEvent. Continuing to build tree " << std::endl;
+    return;
+  }
+
+  bool got_neutronAncestor = m_data->Stores["ANNIEEvent"]->Get("MCHitToNeutronAncestor", fMCHitToNeutronAncestor);
+  if (!got_neutronAncestor) {
+    std::cout << "No MCHitToNeutronAncestor store in ANNIEEvent. Continuing to build tree " << std::endl;
     return;
   }
 
@@ -1453,6 +1462,15 @@ void ANNIEEventTreeMaker::LoadDirectParentIDsMCHits(){
         }
       }
       fDirectParent_PDGs.push_back(pdgcodes);
+
+      int neutronAncestor = -5;
+      if (got_neutronAncestor && fMCHitToNetronAncestor->find(pmtID) != fMCHitToNeutronAncestor->end()){
+        auto const& pmtAncestors = fMCHitToNeutronAncestor->at(pmtID);
+        if (pmtAncestors.find(hitTime) != pmtAncestors.end()){
+          neutronAncestor = pmtAncestors.at(hitTime);
+        }
+      }
+      fDirectParent_NeutronAncestor.push_back(neutronAncestor);
     }
   }
 }
