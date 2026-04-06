@@ -1473,6 +1473,7 @@ void ANNIEEventTreeMaker::LoadDirectParentIDsMCHits(){
       fDirectParent_NeutronAncestor.push_back(neutronAncestor);
     }
   }
+  return;
 }
 
 void ANNIEEventTreeMaker::LoadSiPMHits()

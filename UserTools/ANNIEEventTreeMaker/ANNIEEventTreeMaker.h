@@ -225,7 +225,7 @@ private:
     std::vector<double> fDirectParent_HitTime;
     std::vector<std::vector<int>> fDirectParent_TrackIDs;
     std::vector<std::vector<int>> fDirectParent_PDGs;
-    std::vector<std::vector<int>> fDirectParent_NeutronAncestor;
+    std::vector<int> fDirectParent_NeutronAncestor;
 
     // SiPMPulseInfo_fill
     int fSiPM1NPulses;

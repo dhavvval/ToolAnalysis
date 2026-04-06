@@ -55,7 +55,7 @@ bool BackTracker::Execute()
   fClusterPurity           ->clear();
   fClusterTotalCharge      ->clear();
   fMCHitToDirectParents    ->clear();
-  fMCHitToNeutronAncestor  ->clear();
+  //  fMCHitToNeutronAncestor  ->clear();
 
   fParticleToTankTotalCharge.clear();
 
@@ -269,10 +269,9 @@ void BackTracker::FindNeutronAncestors() {
 
     }
   }
-}
 
 std::cout << "BackTracker::FindNeutronAncestory: finished finding neutron ancestors for MCHits with direct parents, found " << fMCHitToNeutronAncestor->size() << " PMTs with direct parents and neutron ancestors." << std::endl;
-
+}
 
 bool BackTracker::LoadFromStores()
 {
