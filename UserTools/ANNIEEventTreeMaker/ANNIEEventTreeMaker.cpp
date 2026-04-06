@@ -1464,7 +1464,7 @@ void ANNIEEventTreeMaker::LoadDirectParentIDsMCHits(){
       fDirectParent_PDGs.push_back(pdgcodes);
 
       int neutronAncestor = -5;
-      if (got_neutronAncestor && fMCHitToNetronAncestor->find(pmtID) != fMCHitToNeutronAncestor->end()){
+      if (got_neutronAncestor && fMCHitToNeutronAncestor->find(pmtID) != fMCHitToNeutronAncestor->end()){
         auto const& pmtAncestors = fMCHitToNeutronAncestor->at(pmtID);
         if (pmtAncestors.find(hitTime) != pmtAncestors.end()){
           neutronAncestor = pmtAncestors.at(hitTime);

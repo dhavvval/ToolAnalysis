@@ -231,7 +231,7 @@ void BackTracker::FindNeutronAncestors() {
   fMCHitToNeutronAncestor = new std::map<unsigned long, std::map<double, int>>;
 
   std::map<int, std::pair<int, int>> trackMap; // trackId -> (ParentID, pdg)
-  for (const auto& particle : *fMCParticles) {
+  for (auto& particle : *fMCParticles) {
     int trackId = particle.GetParticleID();
     int parentId = particle.GetDirectParentID();
     int pdg = particle.GetPdgCode();
@@ -271,7 +271,7 @@ void BackTracker::FindNeutronAncestors() {
   }
 }
 
-std::cout << 'BackTracker::FindNeutronAncestory: finished finding neutron ancestors for MCHits with direct parents, found ' << fMCHitToNeutronAncestor->size() << " PMTs with direct parents and neutron ancestors." << std::endl;
+std::cout << "BackTracker::FindNeutronAncestory: finished finding neutron ancestors for MCHits with direct parents, found " << fMCHitToNeutronAncestor->size() << " PMTs with direct parents and neutron ancestors." << std::endl;
 
 
 bool BackTracker::LoadFromStores()
