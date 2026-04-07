@@ -68,7 +68,8 @@ class BackTracker: public Tool {
   // PMT ID -> reco hit time -> direct parent track IDs
   std::map<unsigned long, std::map<double, std::vector<int>>> *fMCHitToDirectParents = nullptr;
 
-  std::map<unsigned long, std::map<double, int>> *fMCHitToNeutronAncestor = nullptr;
+  // PMT ID -> reco hit time -> (neutron trackID, neutron PDG)
+  std::map<unsigned long, std::map<double, std::pair<int, int>>> *fMCHitToNeutronAncestor = nullptr;
 
   bool fDirectParentClockTickMatching = true;
   uint16_t fPMTSimPrewindowTicks = 10;

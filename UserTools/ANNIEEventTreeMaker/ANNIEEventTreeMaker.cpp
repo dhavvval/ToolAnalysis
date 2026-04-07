@@ -187,7 +187,8 @@ bool ANNIEEventTreeMaker::Initialise(std::string configfile, DataModel &data)
     fANNIETree->Branch("DirectParent_HitTime", &fDirectParent_HitTime);
     fANNIETree->Branch("DirectParent_TrackIDs", &fDirectParent_TrackIDs);
     fANNIETree->Branch("DirectParent_PDGs", &fDirectParent_PDGs);
-    fANNIETree->Branch("DirectParent_NeutronAncestor", &fDirectParent_NeutronAncestor);
+    fANNIETree->Branch("DirectParent_NeutronAncestorTrackID", &fDirectParent_NeutronAncestorTrackID);
+    fANNIETree->Branch("DirectParent_NeutronAncestorPDG", &fDirectParent_NeutronAncestorPDG);
   }
 
   if (SiPMPulseInfo_fill)
@@ -772,7 +773,8 @@ void ANNIEEventTreeMaker::ResetVariables()
   fDirectParent_HitTime.clear();
   fDirectParent_TrackIDs.clear();
   fDirectParent_PDGs.clear();
-  fDirectParent_NeutronAncestor.clear();
+  fDirectParent_NeutronAncestorTrackID.clear();
+  fDirectParent_NeutronAncestorPDG.clear();
 
   // SiPMPulse Info
   fSiPM1NPulses = 0;
@@ -1463,14 +1465,18 @@ void ANNIEEventTreeMaker::LoadDirectParentIDsMCHits(){
       }
       fDirectParent_PDGs.push_back(pdgcodes);
 
-      int neutronAncestor = -5;
+      int neutronAncestorTrackID = -5;
+      int neutronAncestorPDG = -5;
       if (got_neutronAncestor && fMCHitToNeutronAncestor->find(pmtID) != fMCHitToNeutronAncestor->end()){
         auto const& pmtAncestors = fMCHitToNeutronAncestor->at(pmtID);
         if (pmtAncestors.find(hitTime) != pmtAncestors.end()){
-          neutronAncestor = pmtAncestors.at(hitTime);
+          auto const& ancestorPair = pmtAncestors.at(hitTime);
+          neutronAncestorTrackID = ancestorPair.first;   
+          neutronAncestorPDG = ancestorPair.second;      
         }
       }
-      fDirectParent_NeutronAncestor.push_back(neutronAncestor);
+      fDirectParent_NeutronAncestorTrackID.push_back(neutronAncestorTrackID);
+      fDirectParent_NeutronAncestorPDG.push_back(neutronAncestorPDG);
     }
   }
   return;

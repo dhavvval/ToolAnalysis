@@ -40,6 +40,7 @@ bool BackTracker::Initialise(std::string configfile, DataModel &data){
   fClusterPurity            = new std::map<double, double>;
   fClusterTotalCharge       = new std::map<double, double>;
   fMCHitToDirectParents       = new std::map<unsigned long, std::map<double, std::vector<int>>>;
+  fMCHitToNeutronAncestor     = new std::map<unsigned long, std::map<double, std::pair<int, int>>>;
   
   return true;
 }
@@ -227,8 +228,8 @@ void BackTracker::DirectParentsFromClockTickWindows()
 }
 
 void BackTracker::FindNeutronAncestors() {
-
-  fMCHitToNeutronAncestor = new std::map<unsigned long, std::map<double, int>>;
+  // DON'T allocate new - use the one created in Initialise()
+  // fMCHitToNeutronAncestor was already cleared in Execute()
 
   std::map<int, std::pair<int, int>> trackMap; // trackId -> (ParentID, pdg)
   for (auto& particle : *fMCParticles) {
@@ -248,15 +249,26 @@ void BackTracker::FindNeutronAncestors() {
       if (directParents.empty()) continue;
 
       int neutronAncestorId = -5;
+      int neutronAncestorPdg = -5;
       int startParentID = directParents[0]; // take the first direct parent as the starting point
       int currentID = startParentID;
 
+      // Safety: track visited nodes to prevent infinite loops
+      std::set<int> visited;
+
       while (trackMap.find(currentID) != trackMap.end()) {
+        if (visited.count(currentID) > 0) {
+          std::cerr << "WARNING: Circular reference detected at trackID " << currentID << std::endl;
+          break;
+        }
+        visited.insert(currentID);
+
         int parentID = trackMap[currentID].first;
         int pdg = trackMap[currentID].second;
 
         if (pdg == 2112 && neutronAncestorId == -5) { // if it's a neutron and we haven't already found an ancestor, save it
-          neutronAncestorId = currentID;
+          neutronAncestorId = currentID;  // This is the neutron's TRACK ID
+          neutronAncestorPdg = pdg;       // Store the PDG code (2112 for neutron)
           break; //We care about the immidiate neutron ancestor. 
                 //Do we want to find the potential primary neutron ancestor, if there is one? (DJA)
         }
@@ -265,12 +277,14 @@ void BackTracker::FindNeutronAncestors() {
         currentID = parentID;
       }
 
-      (*fMCHitToNeutronAncestor)[pmtID][hitTime] = neutronAncestorId;
+      (*fMCHitToNeutronAncestor)[pmtID][hitTime] = std::make_pair(neutronAncestorId, neutronAncestorPdg);
 
     }
   }
-
-std::cout << "BackTracker::FindNeutronAncestory: finished finding neutron ancestors for MCHits with direct parents, found " << fMCHitToNeutronAncestor->size() << " PMTs with direct parents and neutron ancestors." << std::endl;
+  
+  std::cout << "BackTracker::FindNeutronAncestors: found " 
+            << fMCHitToNeutronAncestor->size() 
+            << " PMTs with neutron ancestors." << std::endl;
 }
 
 bool BackTracker::LoadFromStores()
