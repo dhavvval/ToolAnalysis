@@ -1405,7 +1405,7 @@ void ANNIEEventTreeMaker::LoadDirectParentIDsMCHits(){
   std::map<unsigned long, std::map<double, std::vector<int>>> *fMCHitToDirectParents = nullptr;
   std::vector<MCParticle> *fMCParticles = nullptr;
   std::map<int, int> *fTrackIdToIndex = nullptr;
-  std::map<unsigned long, std::map<double, int>> *fMCHitToNeutronAncestor = nullptr;
+  std::map<unsigned long, std::map<double, std::pair<int,int>>> *fMCHitToNeutronAncestor = nullptr;
 
   bool got_MCHitToDirectParents = m_data->Stores["ANNIEEvent"]->Get("MCHitToDirectParents", fMCHitToDirectParents);
   if (!got_MCHitToDirectParents)  {
