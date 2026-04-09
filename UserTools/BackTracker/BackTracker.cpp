@@ -228,8 +228,6 @@ void BackTracker::DirectParentsFromClockTickWindows()
 }
 
 void BackTracker::FindNeutronAncestors() {
-  // DON'T allocate new - use the one created in Initialise()
-  // fMCHitToNeutronAncestor was already cleared in Execute()
 
   std::map<int, std::pair<int, int>> trackMap; // trackId -> (ParentID, pdg)
   for (auto& particle : *fMCParticles) {
@@ -253,8 +251,8 @@ void BackTracker::FindNeutronAncestors() {
       int startParentID = directParents[0]; // take the first direct parent as the starting point
       int currentID = startParentID;
 
-      // Safety: track visited nodes to prevent infinite loops
-      std::set<int> visited;
+      
+      std::set<int> visited; //Ensures that Ancestory finding doesn't get stuck in a loop if there are any circular references in the MCParticles
 
       while (trackMap.find(currentID) != trackMap.end()) {
         if (visited.count(currentID) > 0) {
