@@ -136,9 +136,12 @@ class PMTDataDecoder: public Tool {
   bool saveRWMRaw;
   bool saveBRFRaw;
   bool saveAmBeRaw;
+  int AmBeCrateNum;
+  int AmBeSlotNum;
+  int AmBeChannelID;
   std::map<uint64_t, std::vector<uint16_t>>* RWMRawWaveforms; //Key: MTCTime, Value: RWM waveform
   std::map<uint64_t, std::vector<uint16_t>>* BRFRawWaveforms; //Key: MTCTime, Value: BRF waveform
-  std::map<uint64_t, std::vector<uint16_t>>* AmBeRawWaveforms; //Key: MTCTime, Value: BRF waveform
+  std::map<uint64_t, std::vector<uint16_t>>* AmBeRawWaveforms; //Key: MTCTime, Value: AmBe waveform
 
 };
 

@@ -52,6 +52,12 @@ bool PMTDataDecoder::Initialise(std::string configfile, DataModel &data){
   m_variables.Get("saveRWMRaw",saveRWMRaw);
   m_variables.Get("saveBRFRaw",saveBRFRaw);
   m_variables.Get("saveAmBeRaw",saveAmBeRaw);
+  AmBeCrateNum  = 1;
+  AmBeSlotNum   = 15;
+  AmBeChannelID = 1;
+  m_variables.Get("AmBeCrateNum",  AmBeCrateNum);
+  m_variables.Get("AmBeSlotNum",   AmBeSlotNum);
+  m_variables.Get("AmBeChannelID", AmBeChannelID);
   RWMRawWaveforms = new std::map<uint64_t, std::vector<uint16_t>>;
   BRFRawWaveforms = new std::map<uint64_t, std::vector<uint16_t>>;
   AmBeRawWaveforms = new std::map<uint64_t, std::vector<uint16_t>>;
@@ -359,12 +365,16 @@ bool PMTDataDecoder::Execute(){
               }
             }
           }else{
-            // BRF is at crate 1, slot 15 , channel 1 after run 5870 (first run for beamyear 2025-2026)
+            // BRF is at crate 1, slot 15 , channel 1 before run 5870
           if(saveBRFRaw){
-            if(uCrateNum == 1 && uSlotNum == 15 && ChannelID == 1)
-            {
-              std::vector<uint16_t> BRFWaveform = apair.second;
-              (*BRFRawWaveforms)[timestamp] = BRFWaveform;
+            // Skip BRF when AmBe occupies the same crate/slot/channel (avoids duplicate waveforms)
+            bool ambeOccupiesThisSlot = saveAmBeRaw &&
+                (AmBeCrateNum == 1 && AmBeSlotNum == 15 && AmBeChannelID == 1);
+            if(!ambeOccupiesThisSlot){
+              if(uCrateNum == 1 && uSlotNum == 15 && ChannelID == 1)
+              {
+                (*BRFRawWaveforms)[timestamp] = apair.second;
+              }
             }
             }
 
@@ -378,20 +388,11 @@ bool PMTDataDecoder::Execute(){
           }
 
           if(saveAmBeRaw){
-            if (RunNumber >= 5680 && RunNumber <= 5854) //In the Summer 2025 AmBe run period, the AmBe PMT was kept in the same slot as the BRF. So, the AmBe waveform is at crate 1, slot 15, channel 1. (DJA)
+            if(uCrateNum == (unsigned int)AmBeCrateNum &&
+               uSlotNum  == (unsigned int)AmBeSlotNum  &&
+               ChannelID == AmBeChannelID)
             {
-              if(uCrateNum == 1 && uSlotNum == 15 && ChannelID == 1)
-              {
-                std::vector<uint16_t> AmBeWaveform = apair.second;
-                (*AmBeRawWaveforms)[timestamp] = AmBeWaveform;
-              }
-            }
-            else {
-              if(uCrateNum == 1 && uSlotNum == 15 && ChannelID == 2)
-              {
-                std::vector<uint16_t> AmBeWaveform = apair.second;
-                (*AmBeRawWaveforms)[timestamp] = AmBeWaveform;
-              }
+              (*AmBeRawWaveforms)[timestamp] = apair.second;
             }
           }
         }

@@ -7,7 +7,7 @@ saveLAPPD 0
 saveRunInfo 1
 saveBeamInfo 0
 saveRawRWMWaveform 0
-saveRawBRFWaveform 1
+saveRawBRFWaveform 0
 saveRawAmBeWaveform 1
 
 beamInfoFileName beamfetcher_tree.root

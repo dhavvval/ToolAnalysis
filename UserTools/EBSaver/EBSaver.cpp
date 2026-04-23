@@ -73,9 +73,9 @@ bool EBSaver::Initialise(std::string configfile, DataModel &data)
   InProgressHitsAux = new std::map<uint64_t, std::map<unsigned long, std::vector<Hit>> *>;
   FinishedRawAcqSize = new std::map<uint64_t, std::map<unsigned long, std::vector<int>>>;
 
-  RWMRawWaveforms = new std::map<uint64_t, std::vector<uint16_t>>;
-  BRFRawWaveforms = new std::map<uint64_t, std::vector<uint16_t>>;
-  AmBeRawWaveforms = new std::map<uint64_t, std::vector<uint16_t>>;
+  RWMRawWaveforms  = nullptr;
+  BRFRawWaveforms  = nullptr;
+  AmBeRawWaveforms = nullptr;
 
   if (saveBeamInfo)
   {

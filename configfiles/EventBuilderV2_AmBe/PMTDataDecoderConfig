@@ -4,3 +4,6 @@ Mode Offline
 OffsetVME03 0
 OffsetVME01 0
 saveAmBeRaw 1
+AmBeCrateNum  1
+AmBeSlotNum   15
+AmBeChannelID 1

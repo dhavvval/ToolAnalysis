@@ -46,7 +46,10 @@ bool FitRWMWaveform::Execute()
   uint64_t WaveformTime = 0;
   m_data->Stores["ANNIEEvent"]->Get("EventTimeTank", WaveformTime);
 
-  if (printToRootFile && ToBePrintedRWMWaveforms.size() < maxPrintNumber)
+  size_t alreadyPrinted = useAmBeWaveform
+      ? ToBePrintedAmBeWaveforms.size()
+      : ToBePrintedRWMWaveforms.size();
+  if (printToRootFile && alreadyPrinted < (size_t)maxPrintNumber)
   {
     if(useAmBeWaveform) {
       ToBePrintedAmBeWaveforms.emplace(WaveformTime, AmBeRawWaveform);
