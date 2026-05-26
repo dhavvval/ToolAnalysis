@@ -264,6 +264,11 @@ void BackTracker::FindNeutronAncestors() {
       // the pulse peak_time which is what fMCHitToDirectParents uses.
       bool isDarknoise = std::all_of(directParents.begin(), directParents.end(),
                                      [](int id) { return id == -1; });
+      // Temporary fix for older WCSim files (e.g. AmBe wcsim_0_999) where -1 is
+      // stored as the neutron's actual track ID rather than a dark-noise sentinel.
+      // If -1 exists in trackMap it is a real physics particle, not noise.
+      if (isDarknoise && trackMap.find(-1) != trackMap.end())
+        isDarknoise = false;
       (*fMCHitToIsDarknoise)[pmtID][hitTime] = isDarknoise;
 
       int neutronAncestorId = -5;
