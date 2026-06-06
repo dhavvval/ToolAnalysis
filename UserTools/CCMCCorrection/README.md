@@ -1,10 +1,10 @@
-# LAPPDBSCharging
+# CCMCCorrection
 
-LAPPDBSCharging
+CCMCCorrection
 
 ## Data
 
-Describe any data formats LAPPDBSCharging creates, destroys, changes, or analyzes. E.G.
+Describe any data formats CCMCCorrection creates, destroys, changes, or analyzes. E.G.
 
 **RawLAPPDData** `map<Geometry, vector<Waveform<double>>>`
 * Takes this data from the `ANNIEEvent` store and finds the number of peaks
@@ -12,7 +12,7 @@ Describe any data formats LAPPDBSCharging creates, destroys, changes, or analyze
 
 ## Configuration
 
-Describe any configuration variables for LAPPDBSCharging.
+Describe any configuration variables for CCMCCorrection.
 
 ```
 param1 value1
