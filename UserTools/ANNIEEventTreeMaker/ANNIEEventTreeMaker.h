@@ -499,6 +499,25 @@ private:
     double fRC_singleRingP;
     double fRC_multiRingP;
 
+    // CC analysis variables
+    double fChargeIsotropy;
+    double fPromptMuonTotalPE;
+    double fRecoMuonKE;
+    double fRecoTankTrack;
+    double fSimpleCosTheta;
+    double fSimplePt;
+    double fSimpleFV;
+    double fSimpleVtxX;
+    double fSimpleVtxY;
+    double fSimpleVtxZ;
+    int    fSimpleFlag;
+    double fSimpleMrdEnergyLoss;
+    double fSimpleTrackLengthInMRD;
+    double fMRDEffWeight;
+    double fDirtScale;
+    std::vector<double> fMRDUnc;
+    std::vector<double> fDirtUnc;
+
     // RecoDebug_fill
     //  **************** Full reco chain information ************* //
     //   seed vertices

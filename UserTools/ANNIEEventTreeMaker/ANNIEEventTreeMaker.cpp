@@ -544,6 +544,28 @@ bool ANNIEEventTreeMaker::Initialise(std::string configfile, DataModel &data)
     fANNIETree->Branch("pointVtxStatus", &fPointVtxStatus, "pointVtxStatus/I");
   }
 
+  // CC analysis variables — always filled (sentinel -9999 when not available)
+  fANNIETree->Branch("Qij", &fChargeIsotropy, "Qij/D");
+  fANNIETree->Branch("promptMuonTotalPE", &fPromptMuonTotalPE, "promptMuonTotalPE/D");
+  fANNIETree->Branch("recoMuonKE", &fRecoMuonKE, "recoMuonKE/D");
+  fANNIETree->Branch("recoTankTrack", &fRecoTankTrack, "recoTankTrack/D");
+  fANNIETree->Branch("SimpleRecoCosTheta", &fSimpleCosTheta, "SimpleRecoCosTheta/D");
+  fANNIETree->Branch("SimpleRecoPt", &fSimplePt, "SimpleRecoPt/D");
+  fANNIETree->Branch("SimpleRecoFV", &fSimpleFV, "SimpleRecoFV/D");
+  // SimpleReco interaction vertex (MRD-based) — branch the position so the
+  // fiducial-volume cut can be applied downstream to James's definition,
+  // rather than relying on the in-code SimpleRecoFV flag.
+  fANNIETree->Branch("SimpleVtxX", &fSimpleVtxX, "SimpleVtxX/D");
+  fANNIETree->Branch("SimpleVtxY", &fSimpleVtxY, "SimpleVtxY/D");
+  fANNIETree->Branch("SimpleVtxZ", &fSimpleVtxZ, "SimpleVtxZ/D");
+  fANNIETree->Branch("SimpleRecoFlag", &fSimpleFlag, "SimpleRecoFlag/I");
+  fANNIETree->Branch("SimpleMrdEnergyLoss", &fSimpleMrdEnergyLoss, "SimpleMrdEnergyLoss/D");
+  fANNIETree->Branch("SimpleTrackLengthInMRD", &fSimpleTrackLengthInMRD, "SimpleTrackLengthInMRD/D");
+  fANNIETree->Branch("MRDEff", &fMRDEffWeight, "MRDEff/D");
+  fANNIETree->Branch("DirtScale", &fDirtScale, "DirtScale/D");
+  fANNIETree->Branch("MRDUnc", &fMRDUnc);
+  fANNIETree->Branch("DirtUnc", &fDirtUnc);
+
   // Difference in MC Truth and Muon Reconstruction Analysis
   // Output to tree when muonTruthRecoDiff_fill = 1 in config
   if (muonTruthRecoDiff_fill)
@@ -680,6 +702,31 @@ bool ANNIEEventTreeMaker::Execute()
   {
     RecoSummary();
   }
+
+  //****************************** Fill CC analysis variables *************************************//
+  m_data->Stores["RecoEvent"]->Get("Qij", fChargeIsotropy);
+  m_data->Stores["RecoEvent"]->Get("PromptMuonTotalPE", fPromptMuonTotalPE);
+  m_data->Stores["RecoEvent"]->Get("SimpleRecoEnergy", fRecoMuonKE);
+  m_data->Stores["RecoEvent"]->Get("SimpleRecoTrackLengthInTank", fRecoTankTrack);
+  m_data->Stores["RecoEvent"]->Get("SimpleRecoCosTheta", fSimpleCosTheta);
+  m_data->Stores["RecoEvent"]->Get("SimpleRecoPt", fSimplePt);
+  bool tmpFV = false;
+  m_data->Stores["RecoEvent"]->Get("SimpleRecoFV", tmpFV);
+  fSimpleFV = tmpFV ? 1.0 : 0.0;
+  Position tmpSimpleVtx;
+  if (m_data->Stores["RecoEvent"]->Get("SimpleRecoVtx", tmpSimpleVtx))
+  {
+    fSimpleVtxX = tmpSimpleVtx.X();
+    fSimpleVtxY = tmpSimpleVtx.Y();
+    fSimpleVtxZ = tmpSimpleVtx.Z();
+  }
+  m_data->Stores["RecoEvent"]->Get("SimpleRecoFlag", fSimpleFlag);
+  m_data->Stores["RecoEvent"]->Get("SimpleRecoMrdEnergyLoss", fSimpleMrdEnergyLoss);
+  m_data->Stores["RecoEvent"]->Get("SimpleRecoTrackLengthInMRD", fSimpleTrackLengthInMRD);
+  m_data->Stores["RecoEvent"]->Get("MRDEff", fMRDEffWeight);
+  m_data->Stores["RecoEvent"]->Get("DirtScale", fDirtScale);
+  m_data->Stores["RecoEvent"]->Get("MRDUnc", fMRDUnc);
+  m_data->Stores["RecoEvent"]->Get("DirtUnc", fDirtUnc);
 
   //****************************** Fill Tree *************************************//
   fANNIETree->Fill();
@@ -1109,6 +1156,25 @@ void ANNIEEventTreeMaker::ResetVariables()
   fKPlusCount = 0;
   fKMinusCount = 0;
 
+  // CC analysis variables
+  fChargeIsotropy = -9999.;
+  fPromptMuonTotalPE = -9999.;
+  fRecoMuonKE = -9999.;
+  fRecoTankTrack = -9999.;
+  fSimpleCosTheta = -9999.;
+  fSimplePt = -9999.;
+  fSimpleFV = 0.;
+  fSimpleVtxX = -9999.;
+  fSimpleVtxY = -9999.;
+  fSimpleVtxZ = -9999.;
+  fSimpleFlag = -9999;
+  fSimpleMrdEnergyLoss = -9999.;
+  fSimpleTrackLengthInMRD = -9999.;
+  fMRDEffWeight = 1.0;
+  fDirtScale = 1.0;
+  fMRDUnc.clear();
+  fDirtUnc.clear();
+
   // Event Info
   fDataStreams.clear();
   GroupedTrigger.clear();
@@ -1475,16 +1541,16 @@ void ANNIEEventTreeMaker::LoadDirectParentIDsMCHits(){
             int MCParticleIndex = it->second;
             int pdg = fMCParticles->at(MCParticleIndex).GetPdgCode();;
 
-            std::cout << "DEBUG DirectParent | "
-                      << "TrackID(from hit)=" << directparentid
-                      << ", MCParticle.GetPdgCode()=" << pdg
-                      << std::endl;
+            // std::cout << "DEBUG DirectParent | "
+            //           << "TrackID(from hit)=" << directparentid
+            //           << ", MCParticle.GetPdgCode()=" << pdg
+            //           << std::endl;
 
             pdgcodes.push_back(pdg);
           }
           else {
-            std::cout << "DEBUG DirectParent | TrackID=" << directparentid
-                      << " NOT FOUND in MCParticles (will use -999)" << std::endl;
+            // std::cout << "DEBUG DirectParent | TrackID=" << directparentid
+            //           << " NOT FOUND in MCParticles (will use -999)" << std::endl;
             pdgcodes.push_back(-999);
           }
         }
