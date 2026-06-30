@@ -12,8 +12,8 @@ verbose 0
 #InputFile /exp/annie/app/users/dajana/WCSim/build/wcsim_0.root
 #InputFile /pnfs/annie/scratch/users/dajana/output/wcsim/AmBe/pmt_tilting_v1/QE_1.50/port5_z0QE_1.50/wcsim_0_999.root
 #InputFile /exp/annie/app/users/dajana/Lucho_AmBe_WCSim/wcsimlucho_0.root
-#InputFile /exp/annie/app/users/dajana/WCSim/build/wcsimneutronwithoutdarknoise_0.root
-InputFile /pnfs/annie/persistent/users/dajana/output/genie_wcsim_tank/productionv1/wcsim_87.root
+#InputFile /pnfs/annie/persistent/users/dajana/AmBe_Neutron_ExpSpecturm_WCSim/QE_1.50/port1_z0QE_1.50/wcsim_2000_2999.root
+InputFile /exp/annie/app/users/dajana/WCSim/build/wcsimneutronwithoutdarknoise_0.root
 WCSimVersion 3               ## should reflect the WCSim version of the files being loaded
 HistoricTriggeroffset 0      ## time offset of digits relative to the trigger
 UseDigitSmearedTime 1        ## whether to use smeared digit time (T), or true time of first photon (F)

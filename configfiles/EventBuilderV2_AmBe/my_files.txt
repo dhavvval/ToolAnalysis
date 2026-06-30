@@ -1,3 +1,1 @@
-/pnfs/annie/persistent/raw/raw/4499/RAWDataR4499S0p0
-/pnfs/annie/persistent/raw/raw/4499/RAWDataR4499S0p1
-/pnfs/annie/persistent/raw/raw/4499/RAWDataR4499S0p2
+/exp/annie/app/users/dajana/files/RAWDataR6188S0p4

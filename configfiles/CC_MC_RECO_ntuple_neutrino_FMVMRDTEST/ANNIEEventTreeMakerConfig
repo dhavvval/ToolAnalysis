@@ -1,6 +1,6 @@
 ANNIEEventTreeMakerVerbosity 0
 
-OutputFile ANNIEEvent_MC_AmBe_wcsim_0_999.root
+OutputFile ANNIEEvent_cc_neutrino_FMVMRDTEST87.root
 
 
 ifillAllTriggers 1
@@ -17,7 +17,7 @@ MRDClusterProcessing 0
 TriggerProcessing 0
 TankHitInfo_fill 1
 DirectParent_MCHit_fill 1
-MRDHitInfo_fill 0
+MRDHitInfo_fill 1
 MRDReco_fill 1
 SiPMPulseInfo_fill 0
 fillCleanEventsOnly 0
@@ -26,7 +26,7 @@ Reco_fill 0
 RecoDebug_fill 0
 muonTruthRecoDiff_fill 0
 isData 0
-HasGenie 0
+HasGenie 1
 
 LAPPDData_fill 0
 LAPPDReco_fill 0

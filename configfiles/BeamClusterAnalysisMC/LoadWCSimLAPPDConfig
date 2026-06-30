@@ -11,7 +11,10 @@ verbose 0
 
 #InputFile /pnfs/annie/persistent/simulations/wcsim/wcsim_ANNIEp2v7_beam/lappd-files/LAPPD_wcsim_beam_gst_1_99_0.199.root
 #InputFile /pnfs/annie/persistent/simulations/wcsim/G1810a0212a/standard/tank/lappd/wcsim_lappd_0.99.1.root
-InputFile /exp/annie/app/users/dajana/WCSim/build/wcsimwithsectrueformuon_lappd_0.root
+#InputFile /exp/annie/app/users/dajana/WCSim/build/wcsimlucho_lappd_0.root
+InputFile /exp/annie/app/users/dajana/WCSim/build/wcsimneutronwithoutdarknoise_lappd_0.root
+#InputFile /pnfs/annie/scratch/users/dajana/output/wcsim/AmBe/pmt_tilting_v1/QE_1.50/port5_z0QE_1.50/wcsim_lappd_0_999.root
+#InputFile /pnfs/annie/persistent/users/dajana/AmBe_Neutron_ExpSpecturm_WCSim/QE_1.50/port1_z0QE_1.50/wcsim_lappd_2000_2999.root
 WCSimVersion 3               ## should reflect the WCSim version of the files being loaded
 InnerStructureRadius 1.3545  ## octagonal inner structure radius in m (from drawings 106.64")
 DrawDebugGraphs 0            ## whether to draw TPolyMarker3D's of hits

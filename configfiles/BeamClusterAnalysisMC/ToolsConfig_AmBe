@@ -1,7 +1,7 @@
 myLoadGeometry LoadGeometry ./configfiles/LoadGeometry/LoadGeometryConfig
 myLoadWCSim LoadWCSim ./configfiles/BeamClusterAnalysisMC/LoadWCSimConfig
-#myLoadWCSimLAPPD LoadWCSimLAPPD ./configfiles/BeamClusterAnalysisMC/LoadWCSimLAPPDConfig
-myLoadGenieEvent LoadGenieEvent ./configfiles/BeamClusterAnalysisMC/LoadGenieEventConfig
+myLoadWCSimLAPPD LoadWCSimLAPPD ./configfiles/BeamClusterAnalysisMC/LoadWCSimLAPPDConfig
+#myLoadGenieEvent LoadGenieEvent ./configfiles/BeamClusterAnalysisMC/LoadGenieEventConfig
 myMCParticleProperties MCParticleProperties ./configfiles/BeamClusterAnalysisMC/MCParticlePropertiesConfig
 myMCRecoEventLoader MCRecoEventLoader ./configfiles/BeamClusterAnalysisMC/MCRecoEventLoaderConfig
 
