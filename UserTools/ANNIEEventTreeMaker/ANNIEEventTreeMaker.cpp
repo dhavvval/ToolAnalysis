@@ -194,6 +194,9 @@ bool ANNIEEventTreeMaker::Initialise(std::string configfile, DataModel &data)
     fANNIETree->Branch("DirectParent_NeutronParentPDG", &fDirectParent_NeutronParentPDG);
     fANNIETree->Branch("DirectParent_IsDarknoise", &fDirectParent_IsDarknoise);
     fANNIETree->Branch("DirectParent_InteractionMode", &fDirectParent_InteractionMode);
+    fANNIETree->Branch("DirectParent_ImmediateAncestorTrackID", &fDirectParent_ImmediateAncestorTrackID);
+    fANNIETree->Branch("DirectParent_ImmediateAncestorPDG", &fDirectParent_ImmediateAncestorPDG);
+    fANNIETree->Branch("DirectParent_ImmediateAncestorClass", &fDirectParent_ImmediateAncestorClass);
   }
 
   if (SiPMPulseInfo_fill)
@@ -845,6 +848,9 @@ void ANNIEEventTreeMaker::ResetVariables()
   fDirectParent_NeutronParentPDG.clear();
   fDirectParent_IsDarknoise.clear();
   fDirectParent_InteractionMode.clear();
+  fDirectParent_ImmediateAncestorTrackID.clear();
+  fDirectParent_ImmediateAncestorPDG.clear();
+  fDirectParent_ImmediateAncestorClass.clear();
 
   // SiPMPulse Info
   fSiPM1NPulses = 0;
@@ -1528,6 +1534,10 @@ void ANNIEEventTreeMaker::LoadDirectParentIDsMCHits(){
   bool got_isDarknoise = m_data->Stores["ANNIEEvent"]->Get("MCHitToIsDarknoise", fMCHitToIsDarknoise);
   std::map<unsigned long, std::map<double, int>>* fMCHitToInteractionMode = nullptr;
   bool got_interactionMode = m_data->Stores["ANNIEEvent"]->Get("MCHitToInteractionMode", fMCHitToInteractionMode);
+  std::map<unsigned long, std::map<double, std::pair<int,int>>>* fMCHitToImmediateAncestor = nullptr;
+  bool got_immediateAncestor = m_data->Stores["ANNIEEvent"]->Get("MCHitToImmediateAncestor", fMCHitToImmediateAncestor);
+  std::map<unsigned long, std::map<double, int>>* fMCHitToImmediateAncestorClass = nullptr;
+  bool got_immediateAncestorClass = m_data->Stores["ANNIEEvent"]->Get("MCHitToImmediateAncestorClass", fMCHitToImmediateAncestorClass);
 
   for (auto const& apair : *fMCHitToDirectParents) {
     unsigned long pmtID = apair.first;
@@ -1614,6 +1624,28 @@ void ANNIEEventTreeMaker::LoadDirectParentIDsMCHits(){
         }
       }
       fDirectParent_InteractionMode.push_back(interactionMode);
+
+      int immediateAncestorTrackID = -5;
+      int immediateAncestorPDG = -5;
+      if (got_immediateAncestor && fMCHitToImmediateAncestor->find(pmtID) != fMCHitToImmediateAncestor->end()){
+        auto const& pmtAncestors = fMCHitToImmediateAncestor->at(pmtID);
+        if (pmtAncestors.find(hitTime) != pmtAncestors.end()){
+          auto const& ancestorPair = pmtAncestors.at(hitTime);
+          immediateAncestorTrackID = ancestorPair.first;
+          immediateAncestorPDG = ancestorPair.second;
+        }
+      }
+      fDirectParent_ImmediateAncestorTrackID.push_back(immediateAncestorTrackID);
+      fDirectParent_ImmediateAncestorPDG.push_back(immediateAncestorPDG);
+
+      int immediateAncestorClass = -5;
+      if (got_immediateAncestorClass && fMCHitToImmediateAncestorClass->find(pmtID) != fMCHitToImmediateAncestorClass->end()){
+        auto const& pmtClasses = fMCHitToImmediateAncestorClass->at(pmtID);
+        if (pmtClasses.find(hitTime) != pmtClasses.end()){
+          immediateAncestorClass = pmtClasses.at(hitTime);
+        }
+      }
+      fDirectParent_ImmediateAncestorClass.push_back(immediateAncestorClass);
     }
   }
   return;

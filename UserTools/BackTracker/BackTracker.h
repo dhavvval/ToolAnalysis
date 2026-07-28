@@ -35,8 +35,12 @@ class BackTracker: public Tool {
   void MatchMCParticle(std::vector<MCHit> const &mchits, int &prtId, int &prtPdg, double &eff, double &pur, double &totalCharge); ///< The meat and potatoes
   void DirectParentsFromClockTickWindows();
   void FindNeutronAncestors();
-  
+
  private:
+
+  // Classifies the PDG of an immediate-background-particle lookup (see
+  // fMCHitToImmediateAncestorClass below for the class codes).
+  int ClassifyBackgroundPDG(int pdg) const;
 
   // Things we need to pull out of the store
   std::map<unsigned long, std::vector<MCHit>> *fMCHitsMap = nullptr;          ///< All of the MCHits keyed by channel number
@@ -87,6 +91,29 @@ class BackTracker: public Tool {
   //   -9999 = mode unavailable (LoadWCSim not run or BackTracker skipped)
   std::map<unsigned long, std::map<double, int>> *fMCHitToInteractionMode = nullptr;
   std::vector<int> fWCSimInteractionModes; // one entry per trigger, from LoadWCSim
+
+  // PMT ID -> reco hit time -> (immediate background ancestor trackID, PDG)
+  //   Generalization of the neutron-only walk above to any species: walks up the
+  //   DirectParentID chain from the hit's direct parent. If that direct parent is an
+  //   e-/e+ (PDG +-11) -- in a water Cherenkov detector essentially every hit is
+  //   mediated by an electron/positron at the last step (Cherenkov radiation,
+  //   Compton/pair-production, photoelectric effect), so naming it as "the
+  //   background particle" carries no information -- look exactly one step further
+  //   up to that electron's own direct parent and report that instead.
+  //   -5 = dark noise, or ancestor track ID not present in MCParticles (untraced)
+  std::map<unsigned long, std::map<double, std::pair<int, int>>> *fMCHitToImmediateAncestor = nullptr;
+  // PMT ID -> reco hit time -> classification of fMCHitToImmediateAncestor's PDG
+  //   0  dark noise
+  //   1  neutron (2112)
+  //   2  muon (+-13)
+  //   3  charged pion (+-211)
+  //   4  proton (2212)
+  //   5  photon (22) -- e.g. non-capture gamma, such as from a pi0 decay or bremsstrahlung
+  //   6  kaon (+-321, 311, -311)
+  //   7  electron/positron (+-11) -- the one-step skip landed on another lepton
+  //   8  other identified species (not covered above)
+  //  -5  untraced -- ancestor track ID not found in MCParticles (not saved by WCSim)
+  std::map<unsigned long, std::map<double, int>> *fMCHitToImmediateAncestorClass = nullptr;
 
   bool fDirectParentClockTickMatching = true;
   uint16_t fPMTSimPrewindowTicks = 10;

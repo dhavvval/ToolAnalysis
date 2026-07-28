@@ -46,6 +46,8 @@ bool BackTracker::Initialise(std::string configfile, DataModel &data){
   fMCHitToNeutronParent     = new std::map<unsigned long, std::map<double, std::pair<int, int>>>;
   fMCHitToIsDarknoise       = new std::map<unsigned long, std::map<double, bool>>;
   fMCHitToInteractionMode   = new std::map<unsigned long, std::map<double, int>>;
+  fMCHitToImmediateAncestor = new std::map<unsigned long, std::map<double, std::pair<int, int>>>;
+  fMCHitToImmediateAncestorClass = new std::map<unsigned long, std::map<double, int>>;
 
   return true;
 }
@@ -66,6 +68,8 @@ bool BackTracker::Execute()
   fMCHitToNeutronParent->clear();
   fMCHitToIsDarknoise->clear();
   fMCHitToInteractionMode->clear();
+  fMCHitToImmediateAncestor->clear();
+  fMCHitToImmediateAncestorClass->clear();
 
   fParticleToTankTotalCharge.clear();
 
@@ -106,6 +110,8 @@ bool BackTracker::Execute()
   m_data->Stores.at("ANNIEEvent")->Set("MCHitToNeutronParent", fMCHitToNeutronParent); //It stores
   m_data->Stores.at("ANNIEEvent")->Set("MCHitToIsDarknoise", fMCHitToIsDarknoise);
   m_data->Stores.at("ANNIEEvent")->Set("MCHitToInteractionMode", fMCHitToInteractionMode);
+  m_data->Stores.at("ANNIEEvent")->Set("MCHitToImmediateAncestor", fMCHitToImmediateAncestor);
+  m_data->Stores.at("ANNIEEvent")->Set("MCHitToImmediateAncestorClass", fMCHitToImmediateAncestorClass);
 
   return true;
 }
@@ -292,6 +298,8 @@ void BackTracker::FindNeutronAncestors() {
         (*fMCHitToNeutronAncestorClass)[pmtID][hitTime] = neutronAncestorClass;
         (*fMCHitToNeutronParent)[pmtID][hitTime] = std::make_pair(neutronParentTrackId, neutronParentPdg);
         (*fMCHitToInteractionMode)[pmtID][hitTime] = -999;
+        (*fMCHitToImmediateAncestor)[pmtID][hitTime] = std::make_pair(-5, -5);
+        (*fMCHitToImmediateAncestorClass)[pmtID][hitTime] = 0;
         continue;
       }
 
@@ -339,6 +347,29 @@ void BackTracker::FindNeutronAncestors() {
       (*fMCHitToNeutronAncestorClass)[pmtID][hitTime] = neutronAncestorClass;
       (*fMCHitToNeutronParent)[pmtID][hitTime] = std::make_pair(neutronParentTrackId, neutronParentPdg);
 
+      // Immediate background particle: same DirectParentID chain, but a shallow
+      // (at most one-step) walk rather than the full ancestry search above. Skips
+      // past a leading e-/e+ direct parent exactly once, since electrons/positrons
+      // are the ubiquitous last-step Cherenkov/ionization carriers in a water
+      // Cherenkov detector and are not informative as "the background particle."
+      int immediateAncestorId = -5;
+      int immediateAncestorPdg = -5;
+      if (trackMap.count(startParentID)) {
+        int directPdg = trackMap[startParentID].second;
+        if (directPdg == 11 || directPdg == -11) {
+          int electronParentId = trackMap[startParentID].first;
+          if (trackMap.count(electronParentId)) {
+            immediateAncestorId = electronParentId;
+            immediateAncestorPdg = trackMap[electronParentId].second;
+          }
+        } else {
+          immediateAncestorId = startParentID;
+          immediateAncestorPdg = directPdg;
+        }
+      }
+      (*fMCHitToImmediateAncestor)[pmtID][hitTime] = std::make_pair(immediateAncestorId, immediateAncestorPdg);
+      (*fMCHitToImmediateAncestorClass)[pmtID][hitTime] = ClassifyBackgroundPDG(immediateAncestorPdg);
+
       int interactionMode = -9999;
       if (!directParents.empty() && !fWCSimInteractionModes.empty()) {
         auto particleIt = fMCParticleIndexMap->find(directParents[0]);
@@ -357,6 +388,20 @@ void BackTracker::FindNeutronAncestors() {
     std::cout << "BackTracker::FindNeutronAncestors: found "
               << fMCHitToNeutronAncestor->size()
               << " PMTs with neutron ancestors." << std::endl;
+  }
+}
+
+int BackTracker::ClassifyBackgroundPDG(int pdg) const {
+  switch (pdg) {
+    case 2112:  return 1;  // neutron
+    case 13: case -13:   return 2; // muon
+    case 211: case -211: return 3; // charged pion
+    case 2212:  return 4;  // proton
+    case 22:    return 5;  // photon
+    case 321: case -321: case 311: case -311: return 6; // kaon
+    case 11: case -11:   return 7; // electron/positron (skip landed on another lepton)
+    case -5:    return -5; // untraced
+    default:    return 8;  // other identified species
   }
 }
 
