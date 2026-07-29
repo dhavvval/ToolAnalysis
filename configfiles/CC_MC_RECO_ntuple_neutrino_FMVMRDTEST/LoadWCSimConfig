@@ -11,8 +11,16 @@ verbose 0
 #InputFile /annie/app/users/jminock/ToolAnalysis/wcsim_0.root
 #InputFile /pnfs/annie/persistent/users/mnieslon/wcsim/output/tankonly/wcsim_ANNIEp2v7_beamlike/wcsim_beamlike_muon_0.100.root
 #InputFile /pnfs/annie/persistent/simulations/wcsim/G1810a0211a/standard/tank/pmt/wcsim_0.0.0.root
-InputFile /exp/annie/app/users/dajana/EB_BC_TA/wcsim_staging_cc_neutrino/wcsim_0.87.0.root
+#InputFile /exp/annie/app/users/dajana/EB_BC_TA/wcsim_staging_cc_neutrino/wcsim_0.87.0.root  ## old index 87
 #InputFile /pnfs/annie/persistent/users/mnieslon/wcsim/output/tankonly/wcsim_ANNIEp2v7_beam/pmt-files/wcsim_beam_gst_1060_91_0.7091.root
+# LoadWCSim's filename parser requires the "wcsim_0.<run>.<subrun>.root" pattern
+# (see LoadWCSim.cpp ~L544) -- raw productionv2/wcsim_10.root does NOT match this
+# and will crash the parser. Use the pre-staged symlink instead:
+#   wcsim_staging_cc_neutrino/wcsim_0.10.0.root -> productionv2/wcsim_10.root
+#InputFile /exp/annie/app/users/dajana/EB_BC_TA/wcsim_staging_cc_neutrino/wcsim_0.10.0.root  ## productionv2, index 10
+# test file from the modified WCSim build (compt/conv/phot electron-save change):
+#   wcsim_staging_cc_neutrino/wcsim_0.99.0.root -> /exp/annie/app/users/dajana/WCSim/build/wcsim_0.root
+InputFile /exp/annie/app/users/dajana/EB_BC_TA/wcsim_staging_cc_neutrino/wcsim_0.99.0.root  ## fresh WCSim build test output
 
 PMTMask configfiles/CC_MC_RECO_ntuple_neutrino/DeadPMTIDs_p2v7.txt ## Which PMTs should be masked out? / are dead?
 ChankeyToPMTIDMap ./configfiles/CC_MC_RECO_ntuple_neutrino/Chankey_WCSimID_v7.txt
