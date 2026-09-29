@@ -1,6 +1,6 @@
 verbosity 0
-PMTParameterFile configfiles/PMTWaveformSim/PMTWaveformLognormFit.csv
-useTimeSmearing 0
+PMTParameterFile configfiles/PMTWaveformSim/PMTWaveformLognormFit_TimeSmearing.csv
+useTimeSmearing 1
 Prewindow 80
 ReadoutWindow 200
 T0Offset 25
