@@ -45,6 +45,7 @@ bool BackTracker::Initialise(std::string configfile, DataModel &data){
   fMCHitToNeutronAncestorClass = new std::map<unsigned long, std::map<double, int>>;
   fMCHitToNeutronParent     = new std::map<unsigned long, std::map<double, std::pair<int, int>>>;
   fMCHitToIsDarknoise       = new std::map<unsigned long, std::map<double, bool>>;
+  fMCHitToRecoCharge        = new std::map<unsigned long, std::map<double, double>>;
   fMCHitToInteractionMode   = new std::map<unsigned long, std::map<double, int>>;
   fMCHitToImmediateAncestor = new std::map<unsigned long, std::map<double, std::pair<int, int>>>;
   fMCHitToImmediateAncestorClass = new std::map<unsigned long, std::map<double, int>>;
@@ -72,6 +73,7 @@ bool BackTracker::Execute()
   fMCHitToNeutronAncestorClass->clear();
   fMCHitToNeutronParent->clear();
   fMCHitToIsDarknoise->clear();
+  fMCHitToRecoCharge->clear();
   fMCHitToInteractionMode->clear();
   fMCHitToImmediateAncestor->clear();
   fMCHitToImmediateAncestorClass->clear();
@@ -119,6 +121,7 @@ bool BackTracker::Execute()
   m_data->Stores.at("ANNIEEvent")->Set("MCHitToNeutronAncestorClass", fMCHitToNeutronAncestorClass);
   m_data->Stores.at("ANNIEEvent")->Set("MCHitToNeutronParent", fMCHitToNeutronParent); //It stores
   m_data->Stores.at("ANNIEEvent")->Set("MCHitToIsDarknoise", fMCHitToIsDarknoise);
+  m_data->Stores.at("ANNIEEvent")->Set("MCHitToRecoCharge", fMCHitToRecoCharge);
   m_data->Stores.at("ANNIEEvent")->Set("MCHitToInteractionMode", fMCHitToInteractionMode);
   m_data->Stores.at("ANNIEEvent")->Set("MCHitToImmediateAncestor", fMCHitToImmediateAncestor);
   m_data->Stores.at("ANNIEEvent")->Set("MCHitToImmediateAncestorClass", fMCHitToImmediateAncestorClass);
@@ -243,6 +246,8 @@ void BackTracker::DirectParentsFromClockTickWindows()
       for (ADCPulse const& pulse : minibufPulses) {
         double pulseStart = pulse.start_time();
         double hitTime = pulse.peak_time();
+
+        (*fMCHitToRecoCharge)[pmtID][hitTime] += pulse.charge();
 
         double tmin = pulseStart - prewindow_ns;
         double tmax = pulseStart + readout_ns;

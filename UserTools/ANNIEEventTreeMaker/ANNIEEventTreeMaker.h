@@ -217,6 +217,8 @@ private:
     bool DirectParent_MCHit_fill = 0;
     std::vector<unsigned long>  fDirectParent_PMTID;
     std::vector<double> fDirectParent_HitTime;
+    std::vector<double> fDirectParent_HitCharge; // ADC pulse charge [nC]; -9999 if unavailable
+    std::vector<double> fDirectParent_HitPE; // pulse charge / data SPE gain; -9999 if unavailable
     std::vector<std::vector<int>> fDirectParent_TrackIDs;
     std::vector<std::vector<int>> fDirectParent_PDGs;
     std::vector<int> fDirectParent_NeutronAncestorTrackID; //Stored unique neutron ancestor track ID for each MCHit, if it exists. -5 if no neutron ancestor found.

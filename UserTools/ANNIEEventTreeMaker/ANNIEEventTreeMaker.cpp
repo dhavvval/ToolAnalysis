@@ -185,6 +185,8 @@ bool ANNIEEventTreeMaker::Initialise(std::string configfile, DataModel &data)
   if (DirectParent_MCHit_fill){
     fANNIETree->Branch("DirectParent_PMTID", &fDirectParent_PMTID);
     fANNIETree->Branch("DirectParent_HitTime", &fDirectParent_HitTime);
+    fANNIETree->Branch("DirectParent_HitCharge", &fDirectParent_HitCharge);
+    fANNIETree->Branch("DirectParent_HitPE", &fDirectParent_HitPE);
     fANNIETree->Branch("DirectParent_TrackIDs", &fDirectParent_TrackIDs);
     fANNIETree->Branch("DirectParent_PDGs", &fDirectParent_PDGs);
     fANNIETree->Branch("DirectParent_NeutronAncestorTrackID", &fDirectParent_NeutronAncestorTrackID);
@@ -841,6 +843,8 @@ void ANNIEEventTreeMaker::ResetVariables()
   // MCHit DirectParent TrackIDs info
   fDirectParent_PMTID.clear();
   fDirectParent_HitTime.clear();
+  fDirectParent_HitCharge.clear();
+  fDirectParent_HitPE.clear();
   fDirectParent_TrackIDs.clear();
   fDirectParent_PDGs.clear();
   fDirectParent_NeutronAncestorTrackID.clear();
@@ -1543,6 +1547,8 @@ void ANNIEEventTreeMaker::LoadDirectParentIDsMCHits(){
   bool got_neutronAncestorClass = m_data->Stores["ANNIEEvent"]->Get("MCHitToNeutronAncestorClass", fMCHitToNeutronAncestorClass);
   bool got_neutronParent = m_data->Stores["ANNIEEvent"]->Get("MCHitToNeutronParent", fMCHitToNeutronParent);
   bool got_isDarknoise = m_data->Stores["ANNIEEvent"]->Get("MCHitToIsDarknoise", fMCHitToIsDarknoise);
+  std::map<unsigned long, std::map<double, double>> *fMCHitToRecoCharge = nullptr;
+  bool got_recoCharge = m_data->Stores["ANNIEEvent"]->Get("MCHitToRecoCharge", fMCHitToRecoCharge);
   std::map<unsigned long, std::map<double, int>>* fMCHitToInteractionMode = nullptr;
   bool got_interactionMode = m_data->Stores["ANNIEEvent"]->Get("MCHitToInteractionMode", fMCHitToInteractionMode);
   std::map<unsigned long, std::map<double, std::pair<int,int>>>* fMCHitToImmediateAncestor = nullptr;
@@ -1567,6 +1573,24 @@ void ANNIEEventTreeMaker::LoadDirectParentIDsMCHits(){
 
       fDirectParent_PMTID.push_back(pmtID);
       fDirectParent_HitTime.push_back(hitTime);
+
+      double hitCharge = -9999., hitPE = -9999.;
+      if (got_recoCharge) {
+        auto pmtIt = fMCHitToRecoCharge->find(pmtID);
+        if (pmtIt != fMCHitToRecoCharge->end()) {
+          auto qIt = pmtIt->second.find(hitTime);
+          if (qIt != pmtIt->second.end()) {
+            hitCharge = qIt->second;
+            auto idIt = channelkey_to_pmtid.find(pmtID);
+            if (idIt != channelkey_to_pmtid.end()) {
+              auto speIt = ChannelKeyToSPEMap.find(pmtid_to_channelkey[idIt->second]);
+              if (speIt != ChannelKeyToSPEMap.end() && speIt->second > 0) hitPE = hitCharge / speIt->second;
+            }
+          }
+        }
+      }
+      fDirectParent_HitCharge.push_back(hitCharge);
+      fDirectParent_HitPE.push_back(hitPE);
       fDirectParent_TrackIDs.push_back(directparentids);
 
       std::vector<int> pdgcodes;
