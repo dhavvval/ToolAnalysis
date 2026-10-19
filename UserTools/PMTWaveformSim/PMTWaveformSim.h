@@ -56,6 +56,8 @@ class PMTWaveformSim: public Tool {
 
   // To load from the ANNIEEvent
   std::map<unsigned long, std::vector<MCHit>> *fMCHits = nullptr;
+  std::vector<MCParticle> *fMCParticles = nullptr;
+  std::vector<int> ParentTrackIDs(const std::vector<int>* idxs) const;
 
   Geometry *fGeo = nullptr;
 

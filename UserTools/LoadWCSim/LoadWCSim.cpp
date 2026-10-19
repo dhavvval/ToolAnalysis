@@ -1407,7 +1407,7 @@ bool LoadWCSim::LoadHits(WCSimRootTrigger* thisTrig, WCSimRootTrigger* firstTrig
     std::vector<int> primaryParents;
     std::vector<int> directParents;
     bool hitIsDarknoise = false;
-    std::tie(primaryParents, directParents, hitIsDarknoise) = GetHitParentIDs(digiHit, firstTrig);
+    std::tie(primaryParents, directParents, hitIsDarknoise) = GetHitParentIdxs(digiHit, firstTrig);
 
     MCHit nextHit(key, digiTime, digiQ, primaryParents, directParents);
     nextHit.SetIsDarknoise(hitIsDarknoise);
@@ -1514,8 +1514,7 @@ void LoadWCSim::MakeParticleToPmtMap(WCSimRootTrigger* thistrig,
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// Get the ID of the primary MCParticle(s) that produced this digi. hit
-//Instead now it stores the direct parent IDs. What do we need primary MCParticles infor too? (DJA)
+// Get the track IDs of the primary and direct parents of each photon in this digi. hit
 std::tuple<std::vector<int>, std::vector<int>, bool> LoadWCSim::GetHitParentIDs(WCSimRootCherenkovDigiHit* digiHit, WCSimRootTrigger* firstTrig)
 {
   std::vector<int> parentIDs; // a hit could technically have more than one contrbuting particle
@@ -1556,12 +1555,14 @@ std::tuple<std::vector<int>, std::vector<int>, bool> LoadWCSim::GetHitParentIDs(
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// Get the index within the the MCParticle vector of the primaries that produced this digi. hit
-std::pair<std::vector<int>, std::vector<int>> LoadWCSim::GetHitParentIdxs(WCSimRootCherenkovDigiHit* digiHit, WCSimRootTrigger* firstTrig)
+// Get the index within the MCParticle vector of the primary and direct parents of this digi. hit.
+// Primary parents that were not recorded are skipped, as before. Direct parents keep one entry
+// per photon: -1 for a dark-noise photon, -2 if the parent track was not saved by WCSim.
+std::tuple<std::vector<int>, std::vector<int>, bool> LoadWCSim::GetHitParentIdxs(WCSimRootCherenkovDigiHit* digiHit, WCSimRootTrigger* firstTrig)
 {
-  auto bothIDs = GetHitParentIDs(digiHit, firstTrig);
-  std::vector<int> parentIDs = std::get<0>(bothIDs);
-  std::vector<int> directParentIDs = std::get<1>(bothIDs);
+  std::vector<int> parentIDs, directParentIDs;
+  bool isDarknoise = false;
+  std::tie(parentIDs, directParentIDs, isDarknoise) = GetHitParentIDs(digiHit, firstTrig);
   std::vector<int> parentIdxs;
   std::vector<int> directParentIdxs;
 
@@ -1571,11 +1572,13 @@ std::pair<std::vector<int>, std::vector<int>> LoadWCSim::GetHitParentIdxs(WCSimR
       parentIdxs.push_back(trackid_to_mcparticleindex->at(parentID));
   }
   for (int directParentID : directParentIDs) {
-    if (trackid_to_mcparticleindex->count(directParentID))
+    if (directParentID == -1) directParentIdxs.push_back(-1);
+    else if (trackid_to_mcparticleindex->count(directParentID))
       directParentIdxs.push_back(trackid_to_mcparticleindex->at(directParentID));
+    else directParentIdxs.push_back(-2);
   }
 
-  return std::make_pair(parentIdxs, directParentIdxs);
+  return std::make_tuple(parentIdxs, directParentIdxs, isDarknoise);
 }
 
 ////////////////////////////////////////////////////////////////////////////////

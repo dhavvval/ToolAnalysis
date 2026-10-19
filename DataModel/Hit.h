@@ -97,8 +97,8 @@ public:
 
   virtual ~MCHit(){};
 	
-  const std::vector<int>* GetParents() { return &Parents; }
-  const std::vector<int>* GetDirectParents() { return &DirectParents; }
+  const std::vector<int>* GetParents() const { return &Parents; }
+  const std::vector<int>* GetDirectParents() const { return &DirectParents; }
   int GetStartTick() { return StartTick; }
   int GetEndTick() { return EndTick; }
   bool GetIsDarknoise() const { return IsDarknoise; }
@@ -117,7 +117,7 @@ public:
 	std::cout << "Charge : " << Charge << std::endl;
 
 	if (Parents.size()) {
-	  std::cout << "Parent MCPartice TrackIDs: {";
+	  std::cout << "Parent MCParticle indices: {";
 	  for (uint idx = 0; idx < Parents.size(); ++idx) {
 		std::cout << Parents.at(idx);
 
@@ -134,8 +134,8 @@ public:
   }
 
 protected:
-  std::vector<int> Parents;
-  std::vector<int> DirectParents;
+  std::vector<int> Parents;        // indices into MCParticles
+  std::vector<int> DirectParents;  // indices into MCParticles, one per photon; -1 dark noise, -2 track not saved
   int StartTick;
   int EndTick;
   bool IsDarknoise;

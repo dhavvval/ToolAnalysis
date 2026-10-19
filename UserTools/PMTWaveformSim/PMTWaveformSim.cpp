@@ -168,8 +168,10 @@ bool PMTWaveformSim::Execute()
       // Grab the hit time (also converted to clock ticks) and the charge
       double hit_t0 = mcHit.GetTime() + fTimeShift;
       double hit_charge = mcHit.GetCharge();
-      const std::vector<int>* directParentIDs = mcHit.GetDirectParents();
-      const std::vector<int>* primaryParentIDs = mcHit.GetParents();
+      const std::vector<int> directParentTrackIDs = ParentTrackIDs(mcHit.GetDirectParents());
+      const std::vector<int> primaryParentTrackIDs = ParentTrackIDs(mcHit.GetParents());
+      const std::vector<int>* directParentIDs = &directParentTrackIDs;
+      const std::vector<int>* primaryParentIDs = &primaryParentTrackIDs;
 
       logmessage = "PMTWaveformSim:\n    hit charge =  " + std::to_string(hit_charge) + " p.e., hit time =  " + std::to_string(hit_t0) + " for PMTID " + std::to_string(PMTID)+ "Direct parent track IDs: " + std::to_string(directParentIDs->size());
       Log(logmessage, v_message, verbosity);
@@ -555,6 +557,8 @@ int PMTWaveformSim::LoadFromStores()
     return 0;
   }
 
+  m_data->Stores.at("ANNIEEvent")->Get("MCParticles", fMCParticles);
+
   if (fMCHits->empty()) {
     logmessage = "PMTWaveformSim: The MCHits map is empty! Will fill a single PMT with a minimal waveform.";
     Log(logmessage, v_warning, verbosity);
@@ -562,6 +566,22 @@ int PMTWaveformSim::LoadFromStores()
   }
 
   return 1;
+}
+
+//------------------------------------------------------------------------------
+// MCHit parents are MCParticle indices; the parent maps published here carry track IDs.
+// Negative entries (-1 dark noise, -2 track not saved) are passed through unchanged.
+std::vector<int> PMTWaveformSim::ParentTrackIDs(const std::vector<int>* idxs) const
+{
+  std::vector<int> ids;
+  ids.reserve(idxs->size());
+  for (int idx : *idxs) {
+    if (idx >= 0 && fMCParticles && idx < (int)fMCParticles->size())
+      ids.push_back(fMCParticles->at(idx).GetParticleID());
+    else
+      ids.push_back(idx);
+  }
+  return ids;
 }
 
 //------------------------------------------------------------------------------
