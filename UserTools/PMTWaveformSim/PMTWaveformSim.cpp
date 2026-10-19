@@ -210,9 +210,6 @@ bool PMTWaveformSim::Execute()
       uint16_t start_clocktick = (t0_ticks > fPrewindow)? t0_ticks - fPrewindow : 0;
       uint16_t end_clocktick = start_clocktick + fReadoutWindow;
 
-	    // Put these ticks into the actual MCHit
-	    mcHit.SetStartTick(start_clocktick);
-	    mcHit.SetEndTick(end_clocktick);
 	  
       // Randomly Sample the PMT parameters for each MCHit
       SampleFitParameters(PMTID);

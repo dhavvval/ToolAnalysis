@@ -76,20 +76,15 @@ public:
 	: Hit()
 	, Parents(std::vector<int>{})
 	, DirectParents(std::vector<int>{})
-	, StartTick(-5)
-	, EndTick(-5)
 	, IsDarknoise(false)
   {
 	serialise=true;
   }
 
-  // Start and End ticks are only ever to be set after initialization
   MCHit(int tubeid, double thetime, double thecharge, std::vector<int> theparents, std::vector<int> thedirectparents)
     : Hit(tubeid, thetime, thecharge)
 	, Parents(theparents)
   , DirectParents(thedirectparents)
-	, StartTick(-5)
-	, EndTick(-5)
 	, IsDarknoise(false)
   {
 	serialise=true;
@@ -99,14 +94,10 @@ public:
 	
   const std::vector<int>* GetParents() const { return &Parents; }
   const std::vector<int>* GetDirectParents() const { return &DirectParents; }
-  int GetStartTick() { return StartTick; }
-  int GetEndTick() { return EndTick; }
   bool GetIsDarknoise() const { return IsDarknoise; }
 
   void SetParents(std::vector<int> parentsin) { Parents = parentsin; }
   void SetDirectParents(std::vector<int> directparentsin) { DirectParents = directparentsin; }
-  void SetStartTick(int tick) { StartTick = tick; }
-  void SetEndTick(int tick) { EndTick = tick; }
   void SetIsDarknoise(bool v) { IsDarknoise = v; }
 
 	
@@ -136,8 +127,6 @@ public:
 protected:
   std::vector<int> Parents;        // indices into MCParticles
   std::vector<int> DirectParents;  // indices into MCParticles, one per photon; -1 dark noise, -2 track not saved
-  int StartTick;
-  int EndTick;
   bool IsDarknoise;
 
   template<class Archive> void serialize(Archive & ar, const unsigned int version)
@@ -150,8 +139,6 @@ protected:
 	  if (version > 0) {
 		ar & Parents; // Parents is now track IDs rather than index within vector
     ar & DirectParents;
-		ar & StartTick;
-		ar & EndTick;
 	  }
 
 	  if (version > 1) {
