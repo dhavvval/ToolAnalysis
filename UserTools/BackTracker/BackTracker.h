@@ -85,12 +85,6 @@ class BackTracker: public Tool {
   std::map<unsigned long, std::map<double, std::pair<int, int>>> *fMCHitToNeutronParent = nullptr;
   // PMT ID -> reco hit time -> true if pulse is pure dark noise
   std::map<unsigned long, std::map<double, bool>> *fMCHitToIsDarknoise = nullptr;
-  // PMT ID -> reco hit time -> WCSim Nuance interaction mode
-  //   -999  = dark noise (no physics parent)
-  //   -9999 = mode unavailable (LoadWCSim not run or BackTracker skipped)
-  std::map<unsigned long, std::map<double, int>> *fMCHitToInteractionMode = nullptr;
-  std::vector<int> fWCSimInteractionModes; // one entry per trigger, from LoadWCSim
-
   // PMT ID -> reco hit time -> (immediate background ancestor trackID, PDG)
   //   Generalization of the neutron-only walk above to any species: walks up the
   //   DirectParentID chain from the hit's direct parent. If that direct parent is an

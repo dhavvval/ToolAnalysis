@@ -496,9 +496,6 @@ bool LoadWCSim::Execute()
   int nMRDTriggers  = WCSimEntry->wcsimrootevent_mrd->GetNumberOfEvents();
   int nVetoTriggers = WCSimEntry->wcsimrootevent_facc->GetNumberOfEvents();
 
-  std::vector<int> WCSimInteractionModes;
-  WCSimInteractionModes.reserve(trigsInEntry);
-
   // Loop over over the triggers
   // =============================================
   while (MCTriggerNum < MaxEventNr) {
@@ -507,7 +504,6 @@ bool LoadWCSim::Execute()
     Log(logmessage, v_message, verbosity);
 
     WCSimRootTrigger* aTrigTank = WCSimEntry->wcsimrootevent->GetTrigger(MCTriggerNum);
-    WCSimInteractionModes.push_back(aTrigTank->GetMode());
     WCSimRootTrigger* aTrigMRD  = ( (MCTriggerNum < nMRDTriggers)
 									? WCSimEntry->wcsimrootevent_mrd->GetTrigger(MCTriggerNum)
 									: nullptr );
@@ -643,7 +639,6 @@ bool LoadWCSim::Execute()
   m_data->Stores.at("ANNIEEvent")->Set("BeamStatus", beamstat);
   m_data->Stores.at("ANNIEEvent")->Set("MCNeutCap", MCNeutCap);
   m_data->Stores.at("ANNIEEvent")->Set("MCNeutCapGammas", MCNeutCapGammas);
-  m_data->Stores.at("ANNIEEvent")->Set("WCSimInteractionModes", WCSimInteractionModes);
   m_data->CStore.Set("NumTriggersThisMCEvt", trigsInEntry);
 
   // auxilliary information about MC Truth particles

@@ -225,7 +225,6 @@ private:
     std::vector<int> fDirectParent_NeutronParentTrackID; // direct parent track ID of the stored neutron ancestor
     std::vector<int> fDirectParent_NeutronParentPDG; // direct parent PDG of the stored neutron ancestor
     std::vector<int> fDirectParent_IsDarknoise; // 1 if the pulse is pure dark noise, 0 otherwise
-    std::vector<int> fDirectParent_InteractionMode; // WCSim Nuance mode per hit; -999 darknoise; -9999 unavailable
     // Immediate background particle: generalizes the neutron-only ancestry walk above to
     // any species via a shallow (at most one-step) walk that skips a leading e-/e+ direct
     // parent, since electrons/positrons are the ubiquitous last-step Cherenkov/ionization
@@ -509,7 +508,6 @@ private:
     int fTrueKPlusCher;
     int fTrueKMinus;
     int fTrueKMinusCher;
-    int fTrueWCSimMode = -9999; // raw WCSim Nuance interaction mode from GetMode()
 
     // TankReco_fill
     double fRecoVtxX;
