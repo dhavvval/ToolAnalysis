@@ -327,7 +327,7 @@ void BackTracker::FindNeutronAncestors() {
 
       while (trackMap.find(currentID) != trackMap.end()) {
         if (visited.count(currentID) > 0) {
-          std::cerr << "WARNING: Circular reference detected at trackID " << currentID << std::endl;
+          Log("BackTracker: circular DirectParentID reference at trackID " + std::to_string(currentID), v_warning, verbosity);
           break;
         }
         visited.insert(currentID);
@@ -428,8 +428,7 @@ void BackTracker::FindNeutronAncestors() {
         while (true) {
           if ((int)lineage.size() >= kMaxLineageDepth) { lineageStatus = -1; break; }
           if (lineageVisited.count(walkId)) {
-            std::cerr << "WARNING: circular DirectParentID in lineage at trackID "
-                      << walkId << std::endl;
+            Log("BackTracker: circular DirectParentID in lineage at trackID " + std::to_string(walkId), v_warning, verbosity);
             lineageStatus = -1;
             break;
           }

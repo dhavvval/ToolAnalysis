@@ -1449,25 +1449,25 @@ void ANNIEEventTreeMaker::LoadDirectParentIDsMCHits(){
 
   bool got_MCHitToDirectParents = m_data->Stores["ANNIEEvent"]->Get("MCHitToDirectParents", fMCHitToDirectParents);
   if (!got_MCHitToDirectParents)  {
-    std::cout << "No MCHitToDirectParents store in ANNIEEvent. Continuing to build tree " << std::endl;
+    Log("ANNIEEventTreeMaker Tool: No MCHitToDirectParents in ANNIEEvent. Continuing to build tree", v_warning, ANNIEEventTreeMakerVerbosity);
     return;
   }
 
   bool got_MCParticles = m_data->Stores["ANNIEEvent"]->Get("MCParticles", fMCParticles);
   if (!got_MCParticles) {
-    std::cout << "No MCParticles store in ANNIEEvent. Continuing to build tree " << std::endl;
+    Log("ANNIEEventTreeMaker Tool: No MCParticles in ANNIEEvent. Continuing to build tree", v_warning, ANNIEEventTreeMakerVerbosity);
     return;
   }
 
   bool got_TrackIdToIndex = m_data->Stores["ANNIEEvent"]->Get("TrackId_to_MCParticleIndex", fTrackIdToIndex);
   if (!got_TrackIdToIndex) {
-    std::cout << "No TrackId_to_MCParticleIndex store in ANNIEEvent. Continuing to build tree " << std::endl;
+    Log("ANNIEEventTreeMaker Tool: No TrackId_to_MCParticleIndex in ANNIEEvent. Continuing to build tree", v_warning, ANNIEEventTreeMakerVerbosity);
     return;
   }
 
   bool got_neutronAncestor = m_data->Stores["ANNIEEvent"]->Get("MCHitToNeutronAncestor", fMCHitToNeutronAncestor);
   if (!got_neutronAncestor) {
-    std::cout << "No MCHitToNeutronAncestor store in ANNIEEvent. Continuing to build tree " << std::endl;
+    Log("ANNIEEventTreeMaker Tool: No MCHitToNeutronAncestor in ANNIEEvent. Continuing to build tree", v_warning, ANNIEEventTreeMakerVerbosity);
     return;
   }
   bool got_neutronAncestorClass = m_data->Stores["ANNIEEvent"]->Get("MCHitToNeutronAncestorClass", fMCHitToNeutronAncestorClass);
@@ -1503,18 +1503,9 @@ void ANNIEEventTreeMaker::LoadDirectParentIDsMCHits(){
           auto it = fTrackIdToIndex->find(directparentid);
           if (it != fTrackIdToIndex->end()) {
             int MCParticleIndex = it->second;
-            int pdg = fMCParticles->at(MCParticleIndex).GetPdgCode();;
-
-            std::cout << "DEBUG DirectParent | "
-                      << "TrackID(from hit)=" << directparentid
-                      << ", MCParticle.GetPdgCode()=" << pdg
-                      << std::endl;
-
-            pdgcodes.push_back(pdg);
+            pdgcodes.push_back(fMCParticles->at(MCParticleIndex).GetPdgCode());
           }
           else {
-            std::cout << "DEBUG DirectParent | TrackID=" << directparentid
-                      << " NOT FOUND in MCParticles (will use -999)" << std::endl;
             pdgcodes.push_back(-999);
           }
         }
