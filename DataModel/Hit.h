@@ -137,17 +137,14 @@ protected:
 	  ar & Charge;
 
 	  if (version > 0) {
-		ar & Parents; // Parents is now track IDs rather than index within vector
-    ar & DirectParents;
-	  }
-
-	  if (version > 1) {
+		ar & Parents;
+		ar & DirectParents;
 		ar & IsDarknoise;
 	  }
 	}
   }
 };
 
-BOOST_CLASS_VERSION(MCHit, 2)
+BOOST_CLASS_VERSION(MCHit, 1)
 
 #endif

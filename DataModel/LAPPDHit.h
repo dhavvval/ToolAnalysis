@@ -170,10 +170,10 @@ public:
 			ar & Position;
 			ar & LocalPosition;
 			ar & Charge;
-			// n.b. at time of writing MCHit stores no additional persistent members
-			// - it only adds parent MCParticle indices, and these aren't saved...
 
 			if (version > 0) {
+				ar & Parents;
+				ar & DirectParents;
 				ar & IsDarknoise;
 			}
 		}

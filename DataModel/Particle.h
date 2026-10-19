@@ -319,8 +319,6 @@ class MCParticle : public Particle {
 			
 			ar & ParticleID;
 			ar & ParentPdg;
-			ar & PrimaryParentID;
-			ar & DirectParentID;
 			ar & StartsInFiducialVolume;
 			
 			ar & TrackAngleX;
@@ -344,8 +342,15 @@ class MCParticle : public Particle {
 			ar & MrdLayersPenetrated;
 			ar & MrdEnergyLoss;
 			ar & Flag;
+
+			if (version > 0) {
+				ar & PrimaryParentID;
+				ar & DirectParentID;
+			}
 		}
 	}
 };
+
+BOOST_CLASS_VERSION(MCParticle, 1)
 
 #endif
