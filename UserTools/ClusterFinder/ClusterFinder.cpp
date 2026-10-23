@@ -19,6 +19,7 @@ bool ClusterFinder::Initialise(std::string configfile, DataModel &data){
   //----------------------------------------------------------------------------  
   
   m_variables.Get("HitStore",HitStoreName);
+  is_mc_store = (HitStoreName == "MCHits" || HitStoreName == "WaveformMCHits");
   m_variables.Get("OutputFile",outputfile);
   m_variables.Get("ClusterFindingWindow",ClusterFindingWindow); 
   m_variables.Get("AcqTimeWindow",AcqTimeWindow);
@@ -170,10 +171,10 @@ bool ClusterFinder::Execute(){
   //m_data->Stores["ANNIEEvent"]->Get("BeamStatus", BeamStatus);
   bool got_recoadc = m_data->Stores["ANNIEEvent"]->Get("RecoADCData",RecoADCHits);
 
-  if (HitStoreName == "MCHits"){
-    bool got_mchits = m_data->Stores["ANNIEEvent"]->Get("MCHits", MCHits);
+  if (is_mc_store){
+    bool got_mchits = m_data->Stores["ANNIEEvent"]->Get(HitStoreName, MCHits);
     if (!got_mchits){
-      std::cout << "No MCHits store in ANNIEEvent!" <<  std::endl;
+      std::cout << "No " << HitStoreName << " store in ANNIEEvent!" <<  std::endl;
       return false;
     }
   } else if (HitStoreName == "Hits"){
@@ -183,7 +184,7 @@ bool ClusterFinder::Execute(){
       return false;
     }
   } else {
-    std::cout << "Selected Hits store invalid.  Must be Hits or MCHits" << std::endl;
+    std::cout << "Selected Hits store invalid.  Must be Hits, MCHits or WaveformMCHits" << std::endl;
     return false;
   }
   // Also load hits from the Hits Store, if available
@@ -338,6 +339,23 @@ bool ClusterFinder::Execute(){
     m_data->Stores["ANNIEEvent"]->Set("MCHits",MCHits,true);
   }
 
+  // Waveform hits are already pulses from PhaseIIADCHitFinder: no merging, and the store is left untouched
+  if(HitStoreName=="WaveformMCHits"){
+    for(std::pair<unsigned long, std::vector<MCHit>>&& apair : *MCHits){
+      unsigned long chankey = apair.first;
+      Detector* thistube = geom->ChannelToDetector(chankey);
+      int detectorkey = thistube->GetDetectorID();
+      if (ApplyDeadMask && thistube->GetStatus() == detectorstatus::OFF)
+        continue;
+      if (thistube->GetDetectorElement()=="Tank"){
+        PMT_ishit[detectorkey] = 1;
+        for (MCHit &ahit : apair.second){
+          if (ahit.GetTime() < end_of_window_time_cut*AcqTimeWindow) v_hittimes.push_back(ahit.GetTime());
+        }
+      }
+    }
+  }
+
   if(HitStoreName=="Hits"){
     int vectsize = Hits->size();
     if (verbose > 0) std::cout <<"Hits size: "<<vectsize<<std::endl;
@@ -365,7 +383,7 @@ bool ClusterFinder::Execute(){
   if (v_hittimes.size() == 0) {
     if (verbose > 1) cout << "No hits, event is skipped..." << endl;
       if (HitStoreName == "Hits") m_data->CStore.Set("ClusterMap",m_all_clusters);
-      else if (HitStoreName == "MCHits") m_data->CStore.Set("ClusterMapMC",m_all_clusters_MC);
+      else if (is_mc_store) m_data->CStore.Set("ClusterMapMC",m_all_clusters_MC);
       m_data->CStore.Set("ClusterMapDetkey",m_all_clusters_detkey);
       return true;
   }
@@ -406,7 +424,7 @@ bool ClusterFinder::Execute(){
     v_mini_hits.clear();
     for (double j_time = *it; j_time < *it + ClusterFindingWindow; j_time+=1){  // loops through times in the window and check if there's a hit at this time
       for(std::vector<double>::iterator it2 = v_hittimes_sorted.begin(); it2 != v_hittimes_sorted.end(); ++it2) {
-        if(HitStoreName=="MCHits"){
+        if(is_mc_store){
           if (static_cast<int>(j_time) == static_cast<int>(*it2)) {     // accept all hit times (some may be smeared to negative values)
             thiswindow_Nhits++;
             v_mini_hits.push_back(*it2);
@@ -508,7 +526,7 @@ bool ClusterFinder::Execute(){
           }
         }
       }
-    } else if (HitStoreName == "MCHits"){
+    } else if (is_mc_store){
       for(std::pair<unsigned long, std::vector<MCHit>>&& apair : *MCHits){
         unsigned long chankey = apair.first;
         Detector* thistube = geom->ChannelToDetector(chankey);
@@ -563,7 +581,7 @@ bool ClusterFinder::Execute(){
           }  
         }
       }
-    } else if (HitStoreName == "MCHits"){
+    } else if (is_mc_store){
       for(std::pair<unsigned long, std::vector<MCHit>>&& apair : *MCHits) {   
         unsigned long chankey = apair.first;
         Detector* thistube = geom->ChannelToDetector(chankey);
@@ -589,7 +607,7 @@ bool ClusterFinder::Execute(){
 
   // Load the cluster map in a CStore for use by a subsequent tool
   if (HitStoreName == "Hits") m_data->CStore.Set("ClusterMap",m_all_clusters);
-  else if (HitStoreName == "MCHits") m_data->CStore.Set("ClusterMapMC",m_all_clusters_MC);
+  else if (is_mc_store) m_data->CStore.Set("ClusterMapMC",m_all_clusters_MC);
   m_data->CStore.Set("ClusterMapDetkey",m_all_clusters_detkey);
 
   //check whether PMT_ishit is filled correctly

@@ -17,7 +17,7 @@ The following variables can be configured for the ClusterFinder tool:
 ```
 # ClusterFinder Config File
 
-HitStore Hits #Either MCHits or Hits (accessed in ANNIEEvent store)
+HitStore Hits #MCHits, Hits or WaveformMCHits (accessed in ANNIEEvent store). WaveformMCHits are the PhaseIIADCHitFinder pulses of simulated waveforms (BuildWaveformMCHits 1); they are clustered as they are, without MC_pulse_width merging
 ApplyDeadMask 1 #Do not include faulty/dead PMTs that may be in the ProcessedData
 OutputFile LEDRun1415S0Beam_AllPMTs_TestClusterFinder #Output root prefix name for the current run
 ClusterFindingWindow 50 # in ns, size of the window used to "clusterize"
