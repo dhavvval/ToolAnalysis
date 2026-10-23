@@ -34,13 +34,22 @@ class BackTracker: public Tool {
   void SumParticleTankCharge();
   void MatchMCParticle(std::vector<MCHit> const &mchits, int &prtId, int &prtPdg, double &eff, double &pur, double &totalCharge); ///< The meat and potatoes
   void DirectParentsFromClockTickWindows();
+  void DirectParentsFromWaveformHits(); ///< parents carried by each WaveformMCHit (PhaseIIADCHitFinder BuildWaveformMCHits)
   void FindNeutronAncestors();
+  void FindMCHitLineages(); ///< Lineage of every MCHit (not only waveform pulses), aligned with the MCHits store
 
  private:
 
   // Classifies the PDG of an immediate-background-particle lookup (see
   // fMCHitToImmediateAncestorClass below for the class codes).
   int ClassifyBackgroundPDG(int pdg) const;
+
+  std::vector<int> UniqueParents(MCHit &mchit) const; ///< distinct parents of a hit (the list has one entry per photon)
+  int ParticleIDFromParent(int parent) const; ///< waveform_hits: parent is a track ID; pulse_window: original index lookup; -5 if not found
+
+  std::map<int, std::pair<int, int>> BuildTrackMap() const; ///< trackID -> (DirectParentID, PDG)
+  // DirectParentID chain from startId, nearest first. status: 1 reached a primary, 0 truncated, -1 loop/too deep
+  std::vector<std::pair<int, int>> WalkLineage(int startId, std::map<int, std::pair<int, int>> const &trackMap, int &status) const;
 
   // Things we need to pull out of the store
   std::map<unsigned long, std::vector<MCHit>> *fMCHitsMap = nullptr;          ///< All of the MCHits keyed by channel number
@@ -71,6 +80,11 @@ class BackTracker: public Tool {
   std::map<double, std::vector<std::vector<int>>> *fClusterHitToDirectParentTrackIDs = nullptr;
   // PMT ID -> reco hit time -> direct parent track IDs
   std::map<unsigned long, std::map<double, std::vector<int>>> *fMCHitToDirectParents = nullptr;
+
+  // Channel key -> one entry per MCHit, in MCHits store order (same order as the tree's hitT)
+  std::map<unsigned long, std::vector<std::vector<std::pair<int, int>>>> *fMCHitLineage = nullptr;
+  std::map<unsigned long, std::vector<int>> *fMCHitLineageStatus = nullptr;
+  std::map<unsigned long, std::vector<int>> *fMCHitIsDarknoise = nullptr;
 
   // PMT ID -> reco hit time -> (neutron trackID, neutron PDG)
   std::map<unsigned long, std::map<double, std::pair<int, int>>> *fMCHitToNeutronAncestor = nullptr;
@@ -157,6 +171,8 @@ class BackTracker: public Tool {
   static const int kMaxLineageDepth = 64;
 
   bool fDirectParentClockTickMatching = true;
+  std::string fDirectParentMatching = "pulse_window"; ///< pulse_window or waveform_hits
+  std::string fMCHitStoreName = "MCHits";             ///< hit store matched to particles and walked for lineages
   uint16_t fPMTSimPrewindowTicks = 10;
   uint16_t fPMTSimReadoutWindowTicks = 35;
 

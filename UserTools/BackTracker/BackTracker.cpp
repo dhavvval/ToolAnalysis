@@ -32,6 +32,20 @@ bool BackTracker::Initialise(std::string configfile, DataModel &data){
   bool gotUsePulseWindowMatching = m_variables.Get("UseDirectParentClockTickMatching", fDirectParentClockTickMatching);
   if (!gotUsePulseWindowMatching) fDirectParentClockTickMatching = true;
 
+  if (!m_variables.Get("MCHitStore", fMCHitStoreName)) fMCHitStoreName = "MCHits";
+  if (!m_variables.Get("DirectParentMatching", fDirectParentMatching)) {
+    fDirectParentMatching = "pulse_window";
+    Log("BackTracker: DirectParentMatching not set, using pulse_window", v_warning, verbosity);
+  }
+  if (fDirectParentMatching != "pulse_window" && fDirectParentMatching != "waveform_hits") {
+    Log("BackTracker: DirectParentMatching must be pulse_window or waveform_hits. Aborting!", v_error, verbosity);
+    return false;
+  }
+  if (fDirectParentMatching == "waveform_hits" && fMCHitStoreName != "WaveformMCHits") {
+    Log("BackTracker: DirectParentMatching waveform_hits needs MCHitStore WaveformMCHits. Aborting!", v_error, verbosity);
+    return false;
+  }
+
 
   // Set up the pointers we're going to save. No need to 
   // delete them at Finalize, the store will handle it
@@ -54,6 +68,9 @@ bool BackTracker::Initialise(std::string configfile, DataModel &data){
   fMCHitToRootAncestor      = new std::map<unsigned long, std::map<double, std::pair<int, int>>>;
   fMCHitToLineage           = new std::map<unsigned long, std::map<double, std::vector<std::pair<int, int>>>>;
   fMCHitToLineageStatus     = new std::map<unsigned long, std::map<double, int>>;
+  fMCHitLineage             = new std::map<unsigned long, std::vector<std::vector<std::pair<int, int>>>>;
+  fMCHitLineageStatus       = new std::map<unsigned long, std::vector<int>>;
+  fMCHitIsDarknoise         = new std::map<unsigned long, std::vector<int>>;
 
   return true;
 }
@@ -82,16 +99,23 @@ bool BackTracker::Execute()
   fMCHitToRootAncestor->clear();
   fMCHitToLineage->clear();
   fMCHitToLineageStatus->clear();
+  fMCHitLineage->clear();
+  fMCHitLineageStatus->clear();
+  fMCHitIsDarknoise->clear();
 
   fParticleToTankTotalCharge.clear();
 
   SumParticleTankCharge();
 
-  if (fDirectParentClockTickMatching) {
+  if (fDirectParentMatching == "waveform_hits") {
+    DirectParentsFromWaveformHits();
+    FindNeutronAncestors();
+  } else if (fDirectParentClockTickMatching) {
     // Required tool order: PMTWaveformSim -> PhaseIIADCHitFinder -> BackTracker
     DirectParentsFromClockTickWindows();
     FindNeutronAncestors();
   }
+  FindMCHitLineages();
 
   // Loop over the clusters and do the things
   for (std::pair<double, std::vector<MCHit>>&& apair : *fClusterMapMC) {
@@ -130,6 +154,9 @@ bool BackTracker::Execute()
   m_data->Stores.at("ANNIEEvent")->Set("MCHitToRootAncestor", fMCHitToRootAncestor);
   m_data->Stores.at("ANNIEEvent")->Set("MCHitToLineage", fMCHitToLineage);
   m_data->Stores.at("ANNIEEvent")->Set("MCHitToLineageStatus", fMCHitToLineageStatus);
+  m_data->Stores.at("ANNIEEvent")->Set("MCHitLineage", fMCHitLineage);
+  m_data->Stores.at("ANNIEEvent")->Set("MCHitLineageStatus", fMCHitLineageStatus);
+  m_data->Stores.at("ANNIEEvent")->Set("MCHitIsDarknoise", fMCHitIsDarknoise);
 
   return true;
 }
@@ -149,14 +176,12 @@ void BackTracker::SumParticleTankCharge()
     for (uint mcHitIdx = 0; mcHitIdx < mcHits.size(); ++mcHitIdx) {
 
       // technically a MCHit could have multiple parents, but they don't appear to in practice
-      // skip any cases we come across
-      std::vector<int> parentIdxs = *(mcHits[mcHitIdx].GetParents());
+      // skip any cases we come across (waveform hits: skip hits made by more than one distinct particle)
+      std::vector<int> parentIdxs = (fDirectParentMatching == "waveform_hits") ? UniqueParents(mcHits[mcHitIdx])
+                                                                               : *(mcHits[mcHitIdx].GetParents());
       if (parentIdxs.size() != 1) continue;
       
-      int particleId = -5;
-      for (auto it : *fMCParticleIndexMap) {
-	if (it.second == parentIdxs[0]) particleId = it.first;
-      }
+      int particleId = ParticleIDFromParent(parentIdxs[0]);
       if (particleId == -5) continue;
 	
       double depositedCharge = mcHits[mcHitIdx].GetCharge();      
@@ -177,7 +202,7 @@ void BackTracker::MatchMCParticle(std::vector<MCHit> const &mchits, int &prtId, 
   totalCharge = 0;
 
   for (auto mchit : mchits) {    
-    std::vector<int> parentIdxs = *(mchit.GetParents());
+    std::vector<int> parentIdxs = (fDirectParentMatching == "waveform_hits") ? UniqueParents(mchit) : *(mchit.GetParents());
     if (parentIdxs.size() != 1) {
       logmessage = "BackTracker::MatchMCParticle: this MCHit has ";
       logmessage += std::to_string(parentIdxs.size()) + " parents!";
@@ -185,10 +210,7 @@ void BackTracker::MatchMCParticle(std::vector<MCHit> const &mchits, int &prtId, 
       continue;
     }
     
-    int particleId = -5;
-    for (auto it : *fMCParticleIndexMap) {
-      if (it.second == parentIdxs[0]) particleId = it.first;
-    }
+    int particleId = ParticleIDFromParent(parentIdxs[0]);
     if (particleId == -5) continue;
     
     double depositedCharge = mchit.GetCharge();
@@ -225,6 +247,50 @@ void BackTracker::MatchMCParticle(std::vector<MCHit> const &mchits, int &prtId, 
   logmessage += std::to_string(prtId) + " which has PDG: " + std::to_string(prtPdg);
   Log(logmessage, v_message, verbosity);
 
+}
+
+//------------------------------------------------------------------------------
+// An MCHit lists one parent per photon; a hit whose photons all share one parent
+// counts as coming from that particle.
+std::vector<int> BackTracker::UniqueParents(MCHit &mchit) const
+{
+  std::vector<int> parents = *(mchit.GetParents());
+  std::sort(parents.begin(), parents.end());
+  parents.erase(std::unique(parents.begin(), parents.end()), parents.end());
+  return parents;
+}
+
+// MCHit parents are track IDs. The pulse_window path keeps its original lookup (parent compared
+// with MCParticle indices) so its output stays identical to earlier productions.
+int BackTracker::ParticleIDFromParent(int parent) const
+{
+  if (fDirectParentMatching == "waveform_hits")
+    return fMCParticleIndexMap->count(parent) ? parent : -5;
+  int particleId = -5;
+  for (auto it : *fMCParticleIndexMap)
+    if (it.second == parent) particleId = it.first;
+  return particleId;
+}
+
+//------------------------------------------------------------------------------
+// Each WaveformMCHit already carries the parents of the true MCHits whose simulated
+// peak lies inside its pulse (largest true MCHit first), so no time window is needed.
+void BackTracker::DirectParentsFromWaveformHits()
+{
+  for (auto& apair : *fMCHitsMap) {
+    unsigned long pmtID = apair.first;
+    std::map<double, double> pulseCharge;
+    auto recoIt = fRecoADCHits.find(pmtID);
+    if (recoIt != fRecoADCHits.end())
+      for (std::vector<ADCPulse> const& minibufPulses : recoIt->second)
+        for (ADCPulse const& pulse : minibufPulses) pulseCharge[pulse.peak_time()] += pulse.charge();
+    for (MCHit& hit : apair.second) {
+      double hitTime = hit.GetTime();
+      (*fMCHitToDirectParents)[pmtID][hitTime] = *(hit.GetDirectParents());
+      auto qIt = pulseCharge.find(hitTime);
+      if (qIt != pulseCharge.end()) (*fMCHitToRecoCharge)[pmtID][hitTime] = qIt->second;
+    }
+  }
 }
 
 void BackTracker::DirectParentsFromClockTickWindows()
@@ -268,14 +334,7 @@ void BackTracker::DirectParentsFromClockTickWindows()
 
 void BackTracker::FindNeutronAncestors() {
 
-  std::map<int, std::pair<int, int>> trackMap; // trackId -> (DirectParentID, pdg)
-  for (auto& particle : *fMCParticles) {
-    int trackId = particle.GetParticleID();
-    int directParentId = particle.GetDirectParentID();
-    int pdg = particle.GetPdgCode();
-
-    trackMap[trackId] = std::make_pair(directParentId, pdg);
-  }
+  std::map<int, std::pair<int, int>> trackMap = BuildTrackMap();
 
   for (const auto& pmtPair : *fMCHitToDirectParents) {
     unsigned long pmtID = pmtPair.first;
@@ -429,28 +488,8 @@ void BackTracker::FindNeutronAncestors() {
       // (almost always an e-/e+), [1] its parent (e.g. a capture gamma), and so on up to
       // the generator primary. This is what lets a class-(-5) hit be read as a chain,
       // "e- <- gamma <- neutron <- proton", rather than as a single label.
-      std::vector<std::pair<int, int>> lineage;
-      int lineageStatus = 0;   // 0 = truncated at an unsaved track, until proven otherwise
-      {
-        std::set<int> lineageVisited;
-        int walkId = startParentID;
-        while (true) {
-          if ((int)lineage.size() >= kMaxLineageDepth) { lineageStatus = -1; break; }
-          if (lineageVisited.count(walkId)) {
-            std::cerr << "WARNING: circular DirectParentID in lineage at trackID "
-                      << walkId << std::endl;
-            lineageStatus = -1;
-            break;
-          }
-          auto walkIt = trackMap.find(walkId);
-          if (walkIt == trackMap.end()) break;   // WCSim never saved this track
-          lineageVisited.insert(walkId);
-          lineage.push_back(std::make_pair(walkId, walkIt->second.second));
-          int nextId = walkIt->second.first;
-          if (nextId <= 0) { lineageStatus = 1; break; } // reached a generator primary
-          walkId = nextId;
-        }
-      }
+      int lineageStatus = 0;
+      std::vector<std::pair<int, int>> lineage = WalkLineage(startParentID, trackMap, lineageStatus);
       (*fMCHitToLineage)[pmtID][hitTime] = lineage;
       (*fMCHitToLineageStatus)[pmtID][hitTime] = lineage.empty() ? 0 : lineageStatus;
 
@@ -478,6 +517,61 @@ void BackTracker::FindNeutronAncestors() {
     std::cout << "BackTracker::FindNeutronAncestors: found "
               << fMCHitToNeutronAncestor->size()
               << " PMTs with neutron ancestors." << std::endl;
+  }
+}
+
+std::map<int, std::pair<int, int>> BackTracker::BuildTrackMap() const {
+  std::map<int, std::pair<int, int>> trackMap;
+  for (auto& particle : *fMCParticles)
+    trackMap[particle.GetParticleID()] = std::make_pair(particle.GetDirectParentID(), particle.GetPdgCode());
+  return trackMap;
+}
+
+std::vector<std::pair<int, int>> BackTracker::WalkLineage(int startId, std::map<int, std::pair<int, int>> const &trackMap, int &status) const {
+  std::vector<std::pair<int, int>> lineage;
+  status = 0;
+  std::set<int> lineageVisited;
+  int walkId = startId;
+  while (true) {
+    if ((int)lineage.size() >= kMaxLineageDepth) { status = -1; break; }
+    if (lineageVisited.count(walkId)) {
+      std::cerr << "WARNING: circular DirectParentID in lineage at trackID "
+                << walkId << std::endl;
+      status = -1;
+      break;
+    }
+    auto walkIt = trackMap.find(walkId);
+    if (walkIt == trackMap.end()) break;   // WCSim never saved this track
+    lineageVisited.insert(walkId);
+    lineage.push_back(std::make_pair(walkId, walkIt->second.second));
+    int nextId = walkIt->second.first;
+    if (nextId <= 0) { status = 1; break; } // reached a generator primary
+    walkId = nextId;
+  }
+  return lineage;
+}
+
+// Same walk as the pulses, per MCHit. The walk starts at the first non-noise direct parent
+// (a merged pulse can open with a dark-noise photon); pure-noise hits get an empty lineage.
+void BackTracker::FindMCHitLineages() {
+  std::map<int, std::pair<int, int>> trackMap = BuildTrackMap();
+  bool minusOneIsReal = trackMap.count(-1) > 0;
+  for (auto& apair : *fMCHitsMap) {
+    auto& lin = (*fMCHitLineage)[apair.first];
+    auto& sta = (*fMCHitLineageStatus)[apair.first];
+    auto& dn  = (*fMCHitIsDarknoise)[apair.first];
+    for (MCHit& hit : apair.second) {
+      std::vector<int> const* dps = hit.GetDirectParents();
+      int startId = -1;
+      for (int id : *dps) if (id != -1 || minusOneIsReal) { startId = id; break; }
+      bool noise = !dps->empty() && startId == -1 && !minusOneIsReal;
+      int status = 0;
+      std::vector<std::pair<int, int>> lineage;
+      if (!noise && !dps->empty()) lineage = WalkLineage(startId, trackMap, status);
+      lin.push_back(lineage);
+      sta.push_back(noise ? -5 : (lineage.empty() ? 0 : status));
+      dn.push_back(noise ? 1 : 0);
+    }
   }
 }
 
@@ -510,9 +604,9 @@ bool BackTracker::LoadFromStores()
     return false;
   }
     
-  bool goodMCHits = m_data->Stores.at("ANNIEEvent")->Get("MCHits", fMCHitsMap);
+  bool goodMCHits = m_data->Stores.at("ANNIEEvent")->Get(fMCHitStoreName, fMCHitsMap);
   if (!goodMCHits) {
-    std::cerr<<"BackTracker: no MCHits in the ANNIEEvent!"<<endl;
+    std::cerr<<"BackTracker: no "<<fMCHitStoreName<<" in the ANNIEEvent!"<<endl;
     return false;
   }
   
@@ -528,7 +622,13 @@ bool BackTracker::LoadFromStores()
     return false;
   }
 
-  if (fDirectParentClockTickMatching) {
+  if (fDirectParentMatching == "waveform_hits") {
+    fRecoADCHits.clear();
+    if (!m_data->Stores.at("ANNIEEvent")->Get("RecoADCHits", fRecoADCHits)) {
+      logmessage = "BackTracker: RecoADCHits missing, waveform-hit reco charge will be empty for this event.";
+      Log(logmessage, v_warning, verbosity);
+    }
+  } else if (fDirectParentClockTickMatching) {
     fPMTToDirectParentMap.clear();
     fRecoADCHits.clear();
 
