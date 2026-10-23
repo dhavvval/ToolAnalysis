@@ -105,6 +105,8 @@ bool PMTWaveformSim::Execute()
   std::map<unsigned long, std::vector<CalibratedADCWaveform<double>> > CalADCDataMC;
   std::map<unsigned long, std::map<uint16_t, std::vector<int>>> PMTToDirectParentMap;
   std::map<unsigned long, std::map<uint16_t, std::vector<int>>> PMTToPrimaryParentMap;
+  // Simulated main-peak time [ns, waveform frame] of each MCHit, aligned with MCHits[pmt]; -1 if not simulated
+  std::map<unsigned long, std::vector<double>> MCHitPeakTimes;
 
 
 
@@ -158,8 +160,11 @@ bool PMTWaveformSim::Execute()
     std::map<uint16_t, uint16_t> sample_map;
     std::map<uint16_t, std::vector<int>> hits_to_directparents_map;
     std::map<uint16_t, std::vector<int>> hits_to_primaryparents_map;
+    std::vector<double>& peakTimes = MCHitPeakTimes[PMTID];
+    peakTimes.assign(mcHits.size(), -1.);
 
-    for (MCHit& mcHit : mcHits) {// Loop through each MCHit in the vector
+    for (size_t i_hit = 0; i_hit < mcHits.size(); ++i_hit) {// Loop through each MCHit in the vector
+      MCHit& mcHit = mcHits[i_hit];
       // skip negative hit times, what does that even mean if we're not using the smeared digit time?
       // skip hit times past 70 us since that's our longest readout
       if (mcHit.GetTime() < 0) continue;
@@ -214,8 +219,10 @@ bool PMTWaveformSim::Execute()
 	  
       // Randomly Sample the PMT parameters for each MCHit
       SampleFitParameters(PMTID);
+      // lognormal main peak of CustomLogNormalPulse: x = p1*exp(-p2^2), with x = tick time + T0Offset - t0
+      peakTimes[i_hit] = hit_t0 + fP1*exp(-fP2*fP2) - fT0Offset*NS_PER_ADC_SAMPLE;
 
-      // loop over clock ticks      
+      // loop over clock ticks
       for (uint16_t clocktick = start_clocktick; clocktick <= end_clocktick; clocktick += 1) {
 	      uint16_t sample = CustomLogNormalPulse(hit_t0, clocktick, hit_charge);
  
@@ -287,6 +294,7 @@ bool PMTWaveformSim::Execute()
   m_data->Stores.at("ANNIEEvent")->Set("CalibratedADCData", CalADCDataMC); 
   m_data->Stores.at("ANNIEEvent")->Set("PMTToDirectParentMap", PMTToDirectParentMap);
   m_data->Stores.at("ANNIEEvent")->Set("PMTToPrimaryParentMap", PMTToPrimaryParentMap);
+  m_data->Stores.at("ANNIEEvent")->Set("PMTWaveformSimHitPeakTime", MCHitPeakTimes);
   m_data->Stores.at("ANNIEEvent")->Set("PMTSimPrewindowTicks", fPrewindow);
   m_data->Stores.at("ANNIEEvent")->Set("PMTSimReadoutWindowTicks", fReadoutWindow);
 

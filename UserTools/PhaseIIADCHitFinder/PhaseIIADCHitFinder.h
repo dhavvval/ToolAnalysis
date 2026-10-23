@@ -58,8 +58,13 @@ class PhaseIIADCHitFinder : public Tool {
     int pulse_window_end_shift;
     std::map<unsigned long, unsigned short> channel_threshold_map;
     std::map<unsigned long, std::vector<std::vector<int>>> channel_window_map;
-    bool eventbuilding_mode; 
+    bool eventbuilding_mode;
     bool mc_waveforms;
+    bool build_waveform_mchits = false;
+
+    // run totals for the WaveformMCHits closure summary
+    long n_sim_mchits = 0, n_assigned_mchits = 0, n_wf_hits = 0, n_orphan_wf_hits = 0;
+    double q_sim_mchits = 0., q_assigned_mchits = 0., pe_wf_hits = 0.;
 
     std::map<unsigned long ,double> ChannelKeyToTimingOffsetMap;
    
@@ -119,6 +124,9 @@ class PhaseIIADCHitFinder : public Tool {
 
     //Takes the ADC pulse vectors (one per minibuffer) and converts them to a vector of hits
     std::vector<Hit> convert_adcpulses_to_hits(unsigned long channel_key,std::vector<std::vector<ADCPulse>> pulses);
+
+    //MC only: one MCHit per found pulse, carrying the parents of the true MCHits whose simulated peak lies inside it
+    bool build_waveform_mchits_store(BoostStore* annie_event);
 
     //EventBuilding mode
     std::map<uint64_t, std::map<unsigned long,std::vector<Waveform<unsigned short>>>> *FinishedRawWaveforms;      //Key: {MTCTime}, value: map of raw waveforms
