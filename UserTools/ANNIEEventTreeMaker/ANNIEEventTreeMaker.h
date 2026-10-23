@@ -121,6 +121,8 @@ private:
     bool LAPPD_PPS_fill = 1;
     bool LAPPD_Waveform_fill = 1;
     bool LAPPD_MC_fill = 0;
+    bool WaveformTruth_fill = 0;
+    std::string MCHitStore = "MCHits"; // MC hit store behind hitT/hitPE: MCHits or WaveformMCHits
 
     // What reco information will be filled
     bool MCTruth_fill = 0; // Output the MC truth information
@@ -261,6 +263,24 @@ private:
     // per hit: 1 chain reached a generator primary (complete); 0 truncated because WCSim
     // did not save the next ancestor; -1 circular reference or depth cap; -5 dark noise
     std::vector<int> fDirectParent_LineageStatus;
+
+    // Same lineage per MCHit, aligned with hitT (MC only; CSR like DirectParent_Lineage*).
+    // Covers the MCHits that produced no waveform pulse, which DirectParent_* cannot.
+    std::vector<int> fHitLineagePDG;
+    std::vector<int> fHitLineageTrackID;
+    std::vector<int> fHitLineageDepth;
+    std::vector<int> fHitLineageStatus;   // as DirectParent_LineageStatus, -5 pure dark noise
+    std::vector<int> fHitIsDarknoise;
+
+    // WaveformTruth_fill (MCHitStore WaveformMCHits): true charge behind each waveform hit, aligned with hitT,
+    // and the event's true MCHits split by what became of them
+    std::vector<double> fHitTruePE;            // summed p.e. of the true MCHits whose simulated peak lies in this pulse
+    std::vector<int> fHitNTrueMCHits;
+    int fTrueMCHitN = 0;                       // simulated true MCHits (tank)
+    double fTrueMCHitPE = 0;
+    int fTrueMCHitNInNoPulse = 0;              // simulated but inside no found pulse (below threshold)
+    double fTrueMCHitPEInNoPulse = 0;
+    int fTrueMCHitNNotSimulated = 0;           // t<0, t>70 us, or channel off
 
     // SiPMPulseInfo_fill
     int fSiPM1NPulses;

@@ -47,6 +47,12 @@ bool ANNIEEventTreeMaker::Initialise(std::string configfile, DataModel &data)
   m_variables.Get("LAPPD_MC_fill", LAPPD_MC_fill);
   m_variables.Get("RingCounting_fill", RingCounting_fill);
   m_variables.Get("DirectParent_MCHit_fill", DirectParent_MCHit_fill);
+  m_variables.Get("MCHitStore", MCHitStore);
+  m_variables.Get("WaveformTruth_fill", WaveformTruth_fill);
+  if (WaveformTruth_fill && MCHitStore != "WaveformMCHits") {
+    Log("ANNIEEventTreeMaker: WaveformTruth_fill needs MCHitStore WaveformMCHits. Aborting!", v_error, ANNIEEventTreeMakerVerbosity);
+    return false;
+  }
 
   std::string output_filename = "ANNIEEventTree.root";
   m_variables.Get("OutputFile", output_filename);
@@ -208,6 +214,22 @@ bool ANNIEEventTreeMaker::Initialise(std::string configfile, DataModel &data)
     fANNIETree->Branch("DirectParent_LineageTrackID", &fDirectParent_LineageTrackID);
     fANNIETree->Branch("DirectParent_LineageDepth", &fDirectParent_LineageDepth);
     fANNIETree->Branch("DirectParent_LineageStatus", &fDirectParent_LineageStatus);
+    fANNIETree->Branch("hitLineagePDG", &fHitLineagePDG);
+    fANNIETree->Branch("hitLineageTrackID", &fHitLineageTrackID);
+    fANNIETree->Branch("hitLineageDepth", &fHitLineageDepth);
+    fANNIETree->Branch("hitLineageStatus", &fHitLineageStatus);
+    fANNIETree->Branch("hitIsDarknoise", &fHitIsDarknoise);
+  }
+
+  if (WaveformTruth_fill)
+  {
+    fANNIETree->Branch("hitTruePE", &fHitTruePE);
+    fANNIETree->Branch("hitNTrueMCHits", &fHitNTrueMCHits);
+    fANNIETree->Branch("trueMCHitN", &fTrueMCHitN, "trueMCHitN/I");
+    fANNIETree->Branch("trueMCHitPE", &fTrueMCHitPE, "trueMCHitPE/D");
+    fANNIETree->Branch("trueMCHitNInNoPulse", &fTrueMCHitNInNoPulse, "trueMCHitNInNoPulse/I");
+    fANNIETree->Branch("trueMCHitPEInNoPulse", &fTrueMCHitPEInNoPulse, "trueMCHitPEInNoPulse/D");
+    fANNIETree->Branch("trueMCHitNNotSimulated", &fTrueMCHitNNotSimulated, "trueMCHitNNotSimulated/I");
   }
 
   if (SiPMPulseInfo_fill)
@@ -866,6 +888,18 @@ void ANNIEEventTreeMaker::ResetVariables()
   fDirectParent_LineageTrackID.clear();
   fDirectParent_LineageDepth.clear();
   fDirectParent_LineageStatus.clear();
+  fHitLineagePDG.clear();
+  fHitLineageTrackID.clear();
+  fHitLineageDepth.clear();
+  fHitLineageStatus.clear();
+  fHitIsDarknoise.clear();
+  fHitTruePE.clear();
+  fHitNTrueMCHits.clear();
+  fTrueMCHitN = 0;
+  fTrueMCHitPE = 0;
+  fTrueMCHitNInNoPulse = 0;
+  fTrueMCHitPEInNoPulse = 0;
+  fTrueMCHitNNotSimulated = 0;
 
   // SiPMPulse Info
   fSiPM1NPulses = 0;
@@ -1395,12 +1429,46 @@ void ANNIEEventTreeMaker::LoadAllTankHits()
   if (isData)
     got_hits = m_data->Stores["ANNIEEvent"]->Get("Hits", Hits);
   else
-    got_hits = m_data->Stores["ANNIEEvent"]->Get("MCHits", MCHits);
+    got_hits = m_data->Stores["ANNIEEvent"]->Get(MCHitStore, MCHits);
   if (!got_hits)
   {
     std::cout << "No Hits store in ANNIEEvent. Continuing to build tree " << std::endl;
     return;
   }
+
+  std::map<unsigned long, std::vector<std::vector<std::pair<int, int>>>>* hitLineage = nullptr;
+  std::map<unsigned long, std::vector<int>>* hitLineageStatus = nullptr;
+  std::map<unsigned long, std::vector<int>>* hitIsDarknoise = nullptr;
+  std::map<unsigned long, std::vector<double>>* wfTrueCharge = nullptr;
+  std::map<unsigned long, std::vector<int>>* mchitToWfHit = nullptr;
+  std::map<unsigned long, std::vector<MCHit>>* trueMCHits = nullptr;
+  std::map<unsigned long, std::vector<double>> wfTrueChargeStore;
+  std::map<unsigned long, std::vector<int>> mchitToWfHitStore;
+  bool got_wfTruth = !isData && WaveformTruth_fill
+      && m_data->Stores["ANNIEEvent"]->Get("WaveformMCHitTrueCharge", wfTrueChargeStore)
+      && m_data->Stores["ANNIEEvent"]->Get("MCHitToWaveformHit", mchitToWfHitStore)
+      && m_data->Stores["ANNIEEvent"]->Get("MCHits", trueMCHits);
+  if (got_wfTruth) {
+    wfTrueCharge = &wfTrueChargeStore;
+    mchitToWfHit = &mchitToWfHitStore;
+    for (auto const& tpair : *trueMCHits) {
+      auto aIt = mchitToWfHit->find(tpair.first);
+      if (aIt == mchitToWfHit->end()) continue;
+      for (size_t i = 0; i < tpair.second.size() && i < aIt->second.size(); ++i) {
+        MCHit thit = tpair.second[i];
+        int a = aIt->second[i];
+        if (a == -2) { fTrueMCHitNNotSimulated++; continue; }
+        fTrueMCHitN++;
+        fTrueMCHitPE += thit.GetCharge();
+        if (a == -1) { fTrueMCHitNInNoPulse++; fTrueMCHitPEInNoPulse += thit.GetCharge(); }
+      }
+    }
+  }
+
+  bool got_hitLineage = !isData && DirectParent_MCHit_fill
+      && m_data->Stores["ANNIEEvent"]->Get("MCHitLineage", hitLineage)
+      && m_data->Stores["ANNIEEvent"]->Get("MCHitLineageStatus", hitLineageStatus)
+      && m_data->Stores["ANNIEEvent"]->Get("MCHitIsDarknoise", hitIsDarknoise);
 
   Position detector_center = geom->GetTankCentre();
   double tank_center_x = detector_center.X();
@@ -1471,8 +1539,37 @@ void ANNIEEventTreeMaker::LoadAllTankHits()
       {
         std::vector<MCHit> ThisPMTHits = it_tank_mc->second;
         fNHits += ThisPMTHits.size();
-        for (MCHit &ahit : ThisPMTHits)
+        for (size_t i_hit = 0; i_hit < ThisPMTHits.size(); i_hit++)
         {
+          MCHit &ahit = ThisPMTHits[i_hit];
+          if (DirectParent_MCHit_fill) {
+            int depth = 0, status = -9999, noise = -9999;
+            if (got_hitLineage && hitLineage->count(channel_key) && i_hit < hitLineage->at(channel_key).size()) {
+              for (auto const& step : hitLineage->at(channel_key)[i_hit]) {
+                fHitLineageTrackID.push_back(step.first);
+                fHitLineagePDG.push_back(step.second);
+                depth++;
+              }
+              status = hitLineageStatus->at(channel_key)[i_hit];
+              noise = hitIsDarknoise->at(channel_key)[i_hit];
+            }
+            fHitLineageDepth.push_back(depth);
+            fHitLineageStatus.push_back(status);
+            fHitIsDarknoise.push_back(noise);
+          }
+          if (WaveformTruth_fill) {
+            double truePE = -9999.;
+            int nTrue = -9999;
+            if (got_wfTruth && wfTrueCharge->count(channel_key) && i_hit < wfTrueCharge->at(channel_key).size()) {
+              truePE = wfTrueCharge->at(channel_key)[i_hit];
+              nTrue = 0;
+              auto aIt = mchitToWfHit->find(channel_key);
+              if (aIt != mchitToWfHit->end())
+                for (int a : aIt->second) if (a == (int)i_hit) nTrue++;
+            }
+            fHitTruePE.push_back(truePE);
+            fHitNTrueMCHits.push_back(nTrue);
+          }
           double hit_PE = ahit.GetCharge();
           double hit_charge = hit_PE * ChannelKeyToSPEMap.at(channel_key_data);
           fHitX.push_back((det_position.X() - tank_center_x));
