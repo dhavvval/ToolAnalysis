@@ -31,7 +31,7 @@ bool ClusterFinder::Initialise(std::string configfile, DataModel &data){
   m_variables.Get("ApplyDeadMask",ApplyDeadMask);
   if (!m_variables.Get("TimeMergeWindow",time_merge_window)) time_merge_window = 0.;
   if (!m_variables.Get("TimeMergeMinTime",time_merge_min_time)) time_merge_min_time = 0.;
-  if (time_merge_window > 0) std::cout << "ClusterFinder: merging clusters whose median times are within "
+  if (time_merge_window > 0 && verbose > 0) std::cout << "ClusterFinder: merging clusters whose median times are within "
                                        << time_merge_window << " ns (clusters after " << time_merge_min_time << " ns)" << std::endl;
 
   //----------------------------------------------------------------------------
