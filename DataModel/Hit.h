@@ -81,7 +81,7 @@ public:
 	serialise=true;
   }
 
-  MCHit(int tubeid, double thetime, double thecharge, std::vector<int> theparents, std::vector<int> thedirectparents)
+  MCHit(int tubeid, double thetime, double thecharge, std::vector<int> theparents, std::vector<int> thedirectparents = std::vector<int>{})
     : Hit(tubeid, thetime, thecharge)
 	, Parents(theparents)
   , DirectParents(thedirectparents)

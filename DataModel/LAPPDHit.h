@@ -101,7 +101,7 @@ class MCLAPPDHit : public LAPPDHit
 
 public:
 	MCLAPPDHit() : LAPPDHit(), Parents(std::vector<int>{}), DirectParents(std::vector<int>{}), IsDarknoise(false) { serialise = true; }
-	MCLAPPDHit(int thetubeid, double thetime, double thecharge, std::vector<double> theposition, std::vector<double> thelocalposition, std::vector<int> theparents, std::vector<int> thedirectparents) : LAPPDHit(thetubeid, thetime, thecharge, theposition, thelocalposition), Parents(theparents), DirectParents(thedirectparents), IsDarknoise(false) { serialise = true; }
+	MCLAPPDHit(int thetubeid, double thetime, double thecharge, std::vector<double> theposition, std::vector<double> thelocalposition, std::vector<int> theparents, std::vector<int> thedirectparents = std::vector<int>{}) : LAPPDHit(thetubeid, thetime, thecharge, theposition, thelocalposition), Parents(theparents), DirectParents(thedirectparents), IsDarknoise(false) { serialise = true; }
 
 	const std::vector<int> *GetParents() const { return &Parents; }
 	void SetParents(std::vector<int> parentsin) { Parents = parentsin; }

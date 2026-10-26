@@ -158,6 +158,13 @@ class MCParticle : public Particle {
 		}
 	}
 	
+	// without primary and direct parent IDs (left at 0, as in the default constructor)
+	MCParticle(int pdg, double sttE, double stpE, Position sttpos, Position stppos,
+	  double sttt, double stpt, Direction startdir, double len, tracktype tracktypein,
+	  int partid, int parentpdg, int flagid, int triggernum)
+	: MCParticle(pdg, sttE, stpE, sttpos, stppos, sttt, stpt, startdir, len, tracktypein,
+	  partid, parentpdg, 0, 0, flagid, triggernum) {}
+
 	inline int GetParticleID(){return ParticleID;}
 	inline int GetParentPdg(){return ParentPdg;}
 	inline int GetPrimaryParentID(){return PrimaryParentID;}
