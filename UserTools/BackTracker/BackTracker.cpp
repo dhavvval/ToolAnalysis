@@ -30,7 +30,7 @@ bool BackTracker::Initialise(std::string configfile, DataModel &data){
   }
 
   bool gotUsePulseWindowMatching = m_variables.Get("UseDirectParentClockTickMatching", fDirectParentClockTickMatching);
-  if (!gotUsePulseWindowMatching) fDirectParentClockTickMatching = true;
+  if (!gotUsePulseWindowMatching) fDirectParentClockTickMatching = false;
 
 
   // Set up the pointers we're going to save. No need to 

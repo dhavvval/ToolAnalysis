@@ -148,7 +148,7 @@ class BackTracker: public Tool {
   // Safety cap on the ancestry walk; real chains are only a few generations deep.
   static const int kMaxLineageDepth = 64;
 
-  bool fDirectParentClockTickMatching = true;
+  bool fDirectParentClockTickMatching = false;
   uint16_t fPMTSimPrewindowTicks = 10;
   uint16_t fPMTSimReadoutWindowTicks = 35;
 
