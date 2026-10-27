@@ -55,6 +55,7 @@ class ClusterFinder: public Tool {
 
   //define input variables
   std::string HitStoreName = "MCHits";
+  bool is_mc_store = true; // MCHits or WaveformMCHits
   std::string outputfile;
   int verbose;
   double diffuser_x;
