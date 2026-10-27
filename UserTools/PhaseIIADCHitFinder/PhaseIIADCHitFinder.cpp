@@ -38,6 +38,11 @@ bool PhaseIIADCHitFinder::Initialise(std::string config_filename, DataModel& dat
   m_variables.Get("WindowIntegrationDB", adc_window_db); 
   m_variables.Get("EventBuilding",eventbuilding_mode);
   m_variables.Get("MCWaveforms",mc_waveforms);
+  m_variables.Get("BuildWaveformMCHits",build_waveform_mchits);
+  if (build_waveform_mchits && !mc_waveforms) {
+    Log("PhaseIIADCHitFinder: BuildWaveformMCHits requires MCWaveforms 1. Aborting!", v_error, verbosity);
+    return false;
+  }
 
   if ((pulse_window_start_shift > 0) || (pulse_window_end_shift) < 0){
     Log("PhaseIIADCHitFinder Tool: WARNING... trigger threshold crossing will not be inside pulse window.  Threshold" 
@@ -212,6 +217,8 @@ bool PhaseIIADCHitFinder::Execute() {
     annie_event->Set("RecoADCHits", pulse_map);
     Log("PhaseIIADCHitFinder Tool: setting PMT Hits in annie event", v_debug, verbosity);
     annie_event->Set("Hits", hit_map,true);
+
+    if (build_waveform_mchits && !this->build_waveform_mchits_store(annie_event)) return false;
 
     Log("PhaseIIADCHitFinder Tool: Finding SiPM pulses in auxiliary channels", v_debug, verbosity);
     //Find pulses in the raw auxiliary channel data
@@ -426,6 +433,136 @@ bool PhaseIIADCHitFinder::Execute() {
 
 
 bool PhaseIIADCHitFinder::Finalise() {
+  if (build_waveform_mchits) {
+    std::stringstream ss;
+    ss << "PhaseIIADCHitFinder WaveformMCHits summary:"
+       << " simulated MCHits " << n_sim_mchits << " (charge " << q_sim_mchits << " p.e.),"
+       << " assigned to a pulse " << n_assigned_mchits << " (charge " << q_assigned_mchits << " p.e.),"
+       << " waveform hits " << n_wf_hits << " (" << pe_wf_hits << " p.e.),"
+       << " waveform hits without a true MCHit " << n_orphan_wf_hits;
+    Log(ss.str(), v_warning, verbosity);
+  }
+  return true;
+}
+
+bool PhaseIIADCHitFinder::build_waveform_mchits_store(BoostStore* annie_event){
+  std::map<unsigned long, std::vector<MCHit>>* mchits = nullptr;
+  std::map<unsigned long, std::vector<double>> peak_times;
+  if (!annie_event->Get("MCHits", mchits) || !annie_event->Get("PMTWaveformSimHitPeakTime", peak_times)) {
+    Log("PhaseIIADCHitFinder: BuildWaveformMCHits needs MCHits and PMTWaveformSimHitPeakTime (run PMTWaveformSim before this tool). Aborting!", v_error, verbosity);
+    return false;
+  }
+  std::map<int, double> spe_map;
+  std::map<unsigned long, int> chankey_to_pmtid;
+  std::map<int, unsigned long> pmtid_to_chankey_data;
+  m_data->CStore.Get("ChannelNumToTankPMTSPEChargeMap", spe_map);
+  m_data->CStore.Get("channelkey_to_pmtid", chankey_to_pmtid);
+  m_data->CStore.Get("pmt_tubeid_to_channelkey_data", pmtid_to_chankey_data);
+
+  auto* wf_mchits = new std::map<unsigned long, std::vector<MCHit>>;
+  // aligned with MCHits[pmt]: index into WaveformMCHits[pmt], -1 simulated but in no pulse, -2 not simulated / channel off
+  std::map<unsigned long, std::vector<int>> mchit_to_wfhit;
+  // aligned with WaveformMCHits[pmt]: number and summed charge [p.e.] of the true MCHits whose peak lies in the pulse
+  std::map<unsigned long, std::vector<int>> wf_true_n;
+  std::map<unsigned long, std::vector<double>> wf_true_charge;
+
+  for (auto& mpair : *mchits) {
+    unsigned long chankey = mpair.first;
+    std::vector<MCHit>& hits = mpair.second;
+    std::vector<int>& assign = mchit_to_wfhit[chankey];
+    assign.assign(hits.size(), -2);
+
+    auto ptIt = peak_times.find(chankey);
+    if (ptIt == peak_times.end() || ptIt->second.size() != hits.size()) continue;
+    Channel* thischannel = geom->GetChannel(chankey);
+    if (thischannel == nullptr || thischannel->GetStatus() == channelstatus::OFF) continue;
+
+    double spe = -1.;
+    auto idIt = chankey_to_pmtid.find(chankey);
+    if (idIt != chankey_to_pmtid.end()) {
+      auto dataIt = pmtid_to_chankey_data.find(idIt->second);
+      if (dataIt != pmtid_to_chankey_data.end()) {
+        auto speIt = spe_map.find(dataIt->second);
+        if (speIt != spe_map.end()) spe = speIt->second;
+      }
+    }
+
+    std::vector<ADCPulse const*> pulses;
+    auto puIt = pulse_map.find(chankey);
+    if (puIt != pulse_map.end())
+      for (auto const& minibuffer : puIt->second)
+        for (auto const& apulse : minibuffer) pulses.push_back(&apulse);
+    std::stable_sort(pulses.begin(), pulses.end(),
+                     [](ADCPulse const* a, ADCPulse const* b) { return a->start_time() < b->start_time(); });
+
+    // windows can overlap by their 5-sample margins (Fixed_2023_Gains): a true MCHit is a member of every pulse
+    // whose window holds its peak, and MCHitToWaveformHit points to the one whose core (window minus margins) holds it
+    const double margin = 5 * NS_PER_ADC_SAMPLE;
+    std::vector<double> p_end(pulses.size());
+    for (size_t j = 0; j < pulses.size(); ++j) {
+      std::vector<double> const& trace = pulses[j]->GetTraceXPoints();
+      p_end[j] = pulses[j]->start_time() + (trace.empty() ? 0. : trace.back());
+    }
+    std::vector<std::vector<size_t>> members(pulses.size());
+    for (size_t i_hit = 0; i_hit < hits.size(); ++i_hit) {
+      double tpeak = ptIt->second[i_hit];
+      if (tpeak < 0) continue;
+      assign[i_hit] = -1;
+      ++n_sim_mchits;
+      q_sim_mchits += hits[i_hit].GetCharge();
+      int best = -1;
+      bool best_core = false;
+      for (size_t j = 0; j < pulses.size() && pulses[j]->start_time() <= tpeak; ++j) {
+        if (tpeak > p_end[j]) continue;
+        members[j].push_back(i_hit);
+        bool core = tpeak >= pulses[j]->start_time() + margin && tpeak <= p_end[j] - margin;
+        if (best < 0 || core || !best_core) { best = j; best_core = core; }
+      }
+      if (best >= 0) {
+        assign[i_hit] = best;
+        ++n_assigned_mchits;
+        q_assigned_mchits += hits[i_hit].GetCharge();
+      }
+    }
+    if (spe <= 0) {
+      Log("PhaseIIADCHitFinder: no SPE gain for MC channel " + std::to_string(chankey) + ", its pulses are not turned into WaveformMCHits", v_warning, verbosity);
+      for (int& a : assign) if (a >= 0) a = -2;
+      continue;
+    }
+
+    std::vector<MCHit>& out = (*wf_mchits)[chankey];
+    std::vector<int>& truen = wf_true_n[chankey];
+    std::vector<double>& trueq = wf_true_charge[chankey];
+    for (size_t j = 0; j < pulses.size(); ++j) {
+      // largest true MCHit first, so DirectParents[0] belongs to the dominant contributor
+      std::stable_sort(members[j].begin(), members[j].end(),
+                       [&hits](size_t a, size_t b) { return hits[a].GetCharge() > hits[b].GetCharge(); });
+      std::vector<int> parents, directparents;
+      double qtrue = 0.;
+      bool all_noise = !members[j].empty();
+      for (size_t i_hit : members[j]) {
+        const std::vector<int>* pp = hits[i_hit].GetParents();
+        const std::vector<int>* dp = hits[i_hit].GetDirectParents();
+        parents.insert(parents.end(), pp->begin(), pp->end());
+        directparents.insert(directparents.end(), dp->begin(), dp->end());
+        qtrue += hits[i_hit].GetCharge();
+        if (!hits[i_hit].GetIsDarknoise()) all_noise = false;
+      }
+      MCHit wfhit(chankey, pulses[j]->peak_time(), pulses[j]->charge() / spe, parents, directparents);
+      wfhit.SetIsDarknoise(all_noise);
+      out.push_back(wfhit);
+      truen.push_back(members[j].size());
+      trueq.push_back(qtrue);
+      ++n_wf_hits;
+      pe_wf_hits += pulses[j]->charge() / spe;
+      if (members[j].empty()) ++n_orphan_wf_hits;
+    }
+  }
+
+  annie_event->Set("WaveformMCHits", wf_mchits, true);
+  annie_event->Set("MCHitToWaveformHit", mchit_to_wfhit);
+  annie_event->Set("WaveformMCHitNTrue", wf_true_n);
+  annie_event->Set("WaveformMCHitTrueCharge", wf_true_charge);
   return true;
 }
 
