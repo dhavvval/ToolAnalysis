@@ -35,6 +35,7 @@ class BackTracker: public Tool {
   std::vector<int> UniqueParents(const MCHit &mchit) const;
   void MatchMCParticle(std::vector<MCHit> const &mchits, int &prtId, int &prtPdg, double &eff, double &pur, double &totalCharge); ///< The meat and potatoes
   void DirectParentsFromClockTickWindows();
+  void DirectParentsFromPeakTimes(); ///< pulse <- MCHits whose simulated peak lies in the pulse window
   void FindNeutronAncestors();
 
  private:
@@ -50,6 +51,7 @@ class BackTracker: public Tool {
   std::map<int, int>                          *fMCParticleIndexMap = nullptr; ///< Map between the particle Id and it's position in MCParticles vector
   std::map<unsigned long, std::map<uint16_t, std::vector<int>>> fPMTToDirectParentMap; ///< PMT -> t0 tick -> direct parent IDs from PMTWaveformSim
   std::map<unsigned long, std::vector<std::vector<ADCPulse>>> fRecoADCHits; ///< Reconstructed ADCPulses from PhaseIIADCHitFinder
+  std::map<unsigned long, std::vector<double>> fMCHitPeakTimes; ///< PMT -> simulated peak time of each MCHit, from PMTWaveformSim
 
   // We'll calculate this map from MCHit parent particle to the total charge deposited throughout the tank
   // technically a MCHit could have multiple parents, but they don't appear to in practice
@@ -149,6 +151,7 @@ class BackTracker: public Tool {
   static const int kMaxLineageDepth = 64;
 
   bool fDirectParentClockTickMatching = false;
+  std::string fClockTickMatchingRule = "window"; ///< window: MCHit t0 in [start - prewindow, start + readout]; peak: MCHit peak in [start, end]
   uint16_t fPMTSimPrewindowTicks = 10;
   uint16_t fPMTSimReadoutWindowTicks = 35;
 

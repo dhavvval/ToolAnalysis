@@ -32,6 +32,13 @@ bool BackTracker::Initialise(std::string configfile, DataModel &data){
   bool gotUsePulseWindowMatching = m_variables.Get("UseDirectParentClockTickMatching", fDirectParentClockTickMatching);
   if (!gotUsePulseWindowMatching) fDirectParentClockTickMatching = false;
 
+  m_variables.Get("ClockTickMatchingRule", fClockTickMatchingRule);
+  if (fClockTickMatchingRule != "window" && fClockTickMatchingRule != "peak") {
+    logmessage = "BackTracker: ClockTickMatchingRule must be window or peak, got " + fClockTickMatchingRule;
+    Log(logmessage, v_error, verbosity);
+    return false;
+  }
+
 
   // Set up the pointers we're going to save. No need to 
   // delete them at Finalize, the store will handle it
@@ -85,12 +92,13 @@ bool BackTracker::Execute()
 
   if (fDirectParentClockTickMatching) {
     // Required tool order: PMTWaveformSim -> PhaseIIADCHitFinder -> BackTracker
-    DirectParentsFromClockTickWindows();
+    if (fClockTickMatchingRule == "peak") DirectParentsFromPeakTimes();
+    else DirectParentsFromClockTickWindows();
     FindNeutronAncestors();
   }
 
-  // Loop over the clusters and do the things
-  for (std::pair<double, std::vector<MCHit>>&& apair : *fClusterMapMC) {
+  // Loop over the clusters and do the things (no MC clusters when ClusterFinder ran on Hits)
+  if (fClusterMapMC) for (std::pair<double, std::vector<MCHit>>&& apair : *fClusterMapMC) {
     int prtId = -5;
     int prtPdg = -5;
     double eff = -5;
@@ -263,6 +271,48 @@ void BackTracker::DirectParentsFromClockTickWindows()
               apair.second.begin(), apair.second.end());
           }
         }
+      }
+    }
+  }
+}
+
+//------------------------------------------------------------------------------
+void BackTracker::DirectParentsFromPeakTimes()
+{
+  if (fMCHitPeakTimes.empty() || fRecoADCHits.empty()) return;
+
+  for (auto const& recoIt : fRecoADCHits) {
+    unsigned long pmtID = recoIt.first;
+    auto hitsIt = fMCHitsMap->find(pmtID);
+    auto peakIt = fMCHitPeakTimes.find(pmtID);
+    if (hitsIt == fMCHitsMap->end() || peakIt == fMCHitPeakTimes.end()) continue;
+    std::vector<MCHit> const& mchits = hitsIt->second;
+    std::vector<double> const& peaks = peakIt->second;
+    if (peaks.size() != mchits.size()) continue;
+
+    for (std::vector<ADCPulse> const& minibufPulses : recoIt.second) {
+      for (ADCPulse const& pulse : minibufPulses) {
+        std::vector<double> const& trace = pulse.GetTraceXPoints();
+        double tstart = pulse.start_time();
+        double tend = tstart + (trace.empty() ? 0. : trace.back());
+
+        // largest true MCHit first, so the first direct parent belongs to the dominant contributor
+        std::vector<size_t> members;
+        for (size_t i = 0; i < mchits.size(); ++i)
+          if (peaks[i] >= 0 && peaks[i] >= tstart && peaks[i] <= tend) members.push_back(i);
+        std::stable_sort(members.begin(), members.end(),
+                         [&mchits](size_t a, size_t b) { return mchits[a].GetCharge() > mchits[b].GetCharge(); });
+
+        std::vector<int> parents;
+        for (size_t i : members) {
+          for (int idx : *mchits[i].GetDirectParents()) {
+            int trackID = (idx >= 0 && idx < (int)fMCParticles->size()) ? fMCParticles->at(idx).GetParticleID() : idx;
+            if (std::find(parents.begin(), parents.end(), trackID) == parents.end()) parents.push_back(trackID);
+          }
+        }
+        if (parents.empty()) continue;
+        std::stable_partition(parents.begin(), parents.end(), [](int id) { return id != -1; });
+        (*fMCHitToDirectParents)[pmtID][pulse.peak_time()] = parents;
       }
     }
   }
@@ -489,8 +539,11 @@ bool BackTracker::LoadFromStores()
   // Grab the stuff we need from the stores
   bool goodMCClusters = m_data->CStore.Get("ClusterMapMC", fClusterMapMC);
   if (!goodMCClusters) {
-    std::cerr<<"BackTracker: no ClusterMapMC in the CStore!"<<endl;
-    return false;
+    fClusterMapMC = nullptr;
+    if (!fDirectParentClockTickMatching) {
+      std::cerr<<"BackTracker: no ClusterMapMC in the CStore!"<<endl;
+      return false;
+    }
   }
 
   bool goodAnnieEvent = m_data->Stores.count("ANNIEEvent");
@@ -525,6 +578,14 @@ bool BackTracker::LoadFromStores()
     if (!gotDirectParentMap) {
       logmessage = "BackTracker: PMTToDirectParentMap missing, disabling pulse-window matching for this event.";
       Log(logmessage, v_warning, verbosity);
+    }
+
+    if (fClockTickMatchingRule == "peak") {
+      fMCHitPeakTimes.clear();
+      if (!m_data->Stores.at("ANNIEEvent")->Get("PMTWaveformSimHitPeakTime", fMCHitPeakTimes)) {
+        logmessage = "BackTracker: PMTWaveformSimHitPeakTime missing, no peak-time matching for this event.";
+        Log(logmessage, v_warning, verbosity);
+      }
     }
 
     bool gotRecoADCHits = m_data->Stores.at("ANNIEEvent")->Get("RecoADCHits", fRecoADCHits);

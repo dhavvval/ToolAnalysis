@@ -21,7 +21,7 @@
 **fClusterCharge** `std::map<double, double>` 
 * Total deposited charge of all hits in the cluster
 
-With `UseDirectParentClockTickMatching 1`, `BackTracker` also stores per-hit truth for the reconstructed PMT pulses of simulated waveforms. It needs `PMTWaveformSim` and `PhaseIIADCHitFinder` earlier in the toolchain: each pulse in `RecoADCHits` is matched to the simulated MC hits on the same PMT (`PMTToDirectParentMap` from `PMTWaveformSim`) whose time lies between `Prewindow` ticks before and `ReadoutWindow` ticks after the pulse start. These maps are keyed by PMT ID, then by the pulse peak time:
+With `UseDirectParentClockTickMatching 1`, `BackTracker` also stores per-hit truth for the reconstructed PMT pulses of simulated waveforms. It needs `PMTWaveformSim` and `PhaseIIADCHitFinder` earlier in the toolchain: each pulse in `RecoADCHits` is matched to the simulated MC hits on the same PMT (`PMTToDirectParentMap` from `PMTWaveformSim`) whose time lies between `Prewindow` ticks before and `ReadoutWindow` ticks after the pulse start. With `ClockTickMatchingRule peak`, a pulse is instead matched to the MC hits whose simulated peak (`PMTWaveformSimHitPeakTime`) lies inside the pulse window, largest charge first and dark noise last; `ClusterMapMC` is then optional, so `ClusterFinder` can run on `Hits`. These maps are keyed by PMT ID, then by the pulse peak time:
 
 **MCHitToDirectParents** `std::map<unsigned long, std::map<double, std::vector<int>>>`
 * Geant4 track IDs of the particles that emitted the matched photons (-1 dark noise)
@@ -51,4 +51,5 @@ The ancestry is complete only for WCSim files that save every track behind a PMT
 ```
 verbosity 1 # Verbosity level of the tool
 UseDirectParentClockTickMatching 0 # 1: per-hit truth for waveform-simulated pulses (needs PMTWaveformSim and PhaseIIADCHitFinder); default 0
+ClockTickMatchingRule window # window: MC hit time within Prewindow/ReadoutWindow of the pulse start (default); peak: simulated peak inside the pulse window
 ```
