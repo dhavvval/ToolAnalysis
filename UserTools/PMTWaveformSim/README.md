@@ -17,6 +17,9 @@ Details on the fits used can be found here: https://github.com/S81D/PMTPulseFit
 **PMTToDirectParentMap**, **PMTToPrimaryParentMap** `std::map<unsigned long, std::map<uint16_t, std::vector<int>>>`
 * For each PMT and MC hit time (in ADC ticks): the Geant4 track IDs of the particles that emitted the photons (direct parents), and of their primary ancestors. Used by `BackTracker` (`UseDirectParentClockTickMatching 1`)
 
+**PMTWaveformSimHitPeakTime** `std::map<unsigned long, std::vector<double>>`
+* Time [ns] of the main peak of each simulated MC hit's pulse, aligned with `MCHits` (-1 if the hit was not simulated). Used by `PhaseIIADCHitFinder` (`BuildWaveformMCHits 1`)
+
 **PMTSimPrewindowTicks**, **PMTSimReadoutWindowTicks** `uint16_t`
 * The `Prewindow` and `ReadoutWindow` settings, so that `BackTracker` matches pulses over the same window
 

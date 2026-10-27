@@ -46,9 +46,16 @@ With `UseDirectParentClockTickMatching 1`, `BackTracker` also stores per-hit tru
 
 The ancestry is complete only for WCSim files that save every track behind a PMT hit (ANNIEsoft/WCSim#27).
 
+With `DirectParentMatching waveform_hits`, the same maps are filled from the `WaveformMCHits` of `PhaseIIADCHitFinder` (`BuildWaveformMCHits 1`) instead of a time window: each waveform hit carries the direct parents of the true MC hits behind it, and the maps are keyed by its time. `MCHitStore` is the hit store used for the cluster matching and for:
+
+**MCHitLineage** `std::map<unsigned long, std::vector<std::vector<std::pair<int, int>>>>`, **MCHitLineageStatus**, **MCHitIsDarknoise** `std::map<unsigned long, std::vector<int>>`
+* The lineage of every hit in `MCHitStore`, aligned with that store (filled whenever the per-hit truth is on)
+
 
 ## Configuration
 ```
 verbosity 1 # Verbosity level of the tool
 UseDirectParentClockTickMatching 0 # 1: per-hit truth for waveform-simulated pulses (needs PMTWaveformSim and PhaseIIADCHitFinder); default 0
+DirectParentMatching pulse_window # waveform_hits: per-hit truth from WaveformMCHits (needs PhaseIIADCHitFinder BuildWaveformMCHits 1); default pulse_window
+MCHitStore MCHits # hits matched to particles; default WaveformMCHits with waveform_hits, else MCHits
 ```

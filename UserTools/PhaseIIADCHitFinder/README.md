@@ -44,6 +44,8 @@ UseLEDWaveforms [int]: Specifies whether hits and pulses are found using the
 
 MCWaveforms [int]: Whether the `PMTWaveformSim` MC waveform generator is being used for MC Hits.
 
+BuildWaveformMCHits [int]: MC only (needs `MCWaveforms 1`, and `PMTWaveformSim` before this tool). 1 = also store every pulse found in the simulated waveforms as an `MCHit` in `std::map<unsigned long, std::vector<MCHit>>*` WaveformMCHits: the pulse peak time, charge = pulse charge / SPE gain [p.e.], and the parents and direct parents of the true `MCHits` whose simulated main peak (`PMTWaveformSimHitPeakTime`) lies inside the pulse window, largest true MCHit first. With `Fixed_2023_Gains` neighbouring windows can overlap by their 5-sample margins; a true MCHit then belongs to every pulse whose window holds its peak. It also stores `MCHitToWaveformHit` (aligned with `MCHits`: index of the one waveform hit for the MCHit, preferring the pulse whose window minus the margins holds the peak; -1 in no pulse, -2 not simulated), `WaveformMCHitNTrue` and `WaveformMCHitTrueCharge` (aligned with `WaveformMCHits`: number and summed p.e. of the pulse's true MCHits). Default 0.
+
 EventBuilding [int]: Whether this tool is being used in the event building toolchain.
 
 ###### PULSE FINDING TECHNIQUES #########

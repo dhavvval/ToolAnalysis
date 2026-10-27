@@ -9,3 +9,4 @@ DefaultThresholdType relative
 
 EventBuilding 0
 MCWaveforms 1
+#BuildWaveformMCHits 1 # also store the pulses as MCHits with their true parents (WaveformMCHits), for ClusterFinder HitStore WaveformMCHits
