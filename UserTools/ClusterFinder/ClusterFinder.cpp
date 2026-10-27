@@ -612,14 +612,14 @@ bool ClusterFinder::Execute(){
     int nmerged = 0;
     if (HitStoreName == "Hits")
       nmerged = ClusterTimeMerge::Merge(*m_all_clusters, *m_all_clusters_detkey, time_merge_window, time_merge_min_time);
-    else if (HitStoreName == "MCHits")
+    else if (is_mc_store)
       nmerged = ClusterTimeMerge::Merge(*m_all_clusters_MC, *m_all_clusters_detkey, time_merge_window, time_merge_min_time);
     if (verbose > 0) std::cout << "ClusterFinder: merged away " << nmerged << " clusters" << std::endl;
   }
 
   // Load the cluster map in a CStore for use by a subsequent tool
   if (HitStoreName == "Hits") m_data->CStore.Set("ClusterMap",m_all_clusters);
-  else if (HitStoreName == "MCHits") m_data->CStore.Set("ClusterMapMC",m_all_clusters_MC);
+  else if (is_mc_store) m_data->CStore.Set("ClusterMapMC",m_all_clusters_MC);
   m_data->CStore.Set("ClusterMapDetkey",m_all_clusters_detkey);
 
   //check whether PMT_ishit is filled correctly
