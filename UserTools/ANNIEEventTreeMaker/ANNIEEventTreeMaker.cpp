@@ -15,6 +15,7 @@ bool ANNIEEventTreeMaker::Initialise(std::string configfile, DataModel &data)
 
   m_variables.Get("ANNIEEventTreeMakerVerbosity", ANNIEEventTreeMakerVerbosity);
   m_variables.Get("isData", isData);
+  m_variables.Get("MCWaveformHits", MCWaveformHits);
   m_variables.Get("HasGenie", hasGenie);
 
   fillAllTriggers = true;
@@ -1369,6 +1370,18 @@ void ANNIEEventTreeMaker::LoadAllTankHits()
   bool got_hits = false;
   if (isData)
     got_hits = m_data->Stores["ANNIEEvent"]->Get("Hits", Hits);
+  else if (MCWaveformHits)
+  {
+    got_hits = m_data->Stores["ANNIEEvent"]->Get("Hits", Hits);
+    if (got_hits)
+    {
+      fWaveformHitsPE.clear();
+      for (auto const &apair : *Hits)
+        for (Hit const &ahit : apair.second)
+          fWaveformHitsPE[apair.first].push_back(WaveformHitToMCHit(ahit));
+      MCHits = &fWaveformHitsPE;
+    }
+  }
   else
     got_hits = m_data->Stores["ANNIEEvent"]->Get("MCHits", MCHits);
   if (!got_hits)
@@ -2000,6 +2013,21 @@ void ANNIEEventTreeMaker::FillLAPPDHit()
   }
 }
 
+MCHit ANNIEEventTreeMaker::WaveformHitToMCHit(Hit const &ahit)
+{
+  // waveform hit charge [nC] -> p.e. with the SPE gain of the matching data channel, as the MC hit path expects
+  int channel_key = ahit.GetTubeId();
+  double spe = 1.;
+  auto it_id = channelkey_to_pmtid.find(channel_key);
+  if (it_id != channelkey_to_pmtid.end())
+  {
+    auto it_spe = ChannelKeyToSPEMap.find(pmtid_to_channelkey[it_id->second]);
+    if (it_spe != ChannelKeyToSPEMap.end())
+      spe = it_spe->second;
+  }
+  return MCHit(channel_key, ahit.GetTime(), ahit.GetCharge() / spe, std::vector<int>{});
+}
+
 bool ANNIEEventTreeMaker::LoadClusterInfo()
 {
   Log("ANNIEEventTreeMaker Tool: LoadClusterInfo", v_debug, ANNIEEventTreeMakerVerbosity);
@@ -2017,6 +2045,20 @@ bool ANNIEEventTreeMaker::LoadClusterInfo()
       std::cout << "ANNIEEventTreeMaker tool: No clusters found!" << std::endl;
       return false;
     }
+  }
+  else if (MCWaveformHits)
+  {
+    get_clusters = m_data->CStore.Get("ClusterMap", m_all_clusters);
+    if (!get_clusters)
+    {
+      std::cout << "ANNIEEventTreeMaker tool: No clusters found (MC waveform hits)!" << std::endl;
+      return false;
+    }
+    fWaveformClustersPE.clear();
+    for (auto const &apair : *m_all_clusters)
+      for (Hit const &ahit : apair.second)
+        fWaveformClustersPE[apair.first].push_back(WaveformHitToMCHit(ahit));
+    m_all_clusters_MC = &fWaveformClustersPE;
   }
   else
   {

@@ -14,6 +14,8 @@ Describe any data formats ANNIEEventTreeMaker creates, destroys, changes, or ana
 
 `DirectParent_MCHit_fill 1` (default 0) writes `BackTracker`'s per-hit truth maps (`UseDirectParentClockTickMatching 1`) as one entry per reconstructed PMT pulse: `DirectParent_PMTID`, `DirectParent_HitTime`, `DirectParent_TrackIDs`, `DirectParent_PDGs`, `DirectParent_IsDarknoise`, `DirectParent_NeutronAncestor{TrackID,PDG,Class}`, `DirectParent_NeutronParent{TrackID,PDG}`, `DirectParent_ImmediateAncestor{TrackID,PDG,Class}`, `DirectParent_RootAncestor{TrackID,PDG}`, `DirectParent_Lineage{TrackID,PDG,Depth,Status}`. See the `BackTracker` README for their meaning.
 
+`MCWaveformHits 1` (default 0, MC only) fills the hit and cluster branches from the waveform `Hits` and `ClusterMap` (run `ClusterFinder` with `HitStore Hits`) instead of `MCHits` and `ClusterMapMC`; charges are converted to p.e. with the SPE gain of the matching data channel.
+
 ## Configuration
 
 Describe any configuration variables for ANNIEEventTreeMaker.

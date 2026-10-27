@@ -61,6 +61,7 @@ public:
     void FillLAPPDPulse();
 
     bool LoadClusterInfo();
+    MCHit WaveformHitToMCHit(Hit const &ahit);
 
     void LoadMRDCluster();
 
@@ -91,6 +92,9 @@ public:
 private:
     // General variables
     bool isData = 1;
+    bool MCWaveformHits = false; // MC: hits and clusters from the waveform Hits/ClusterMap instead of MCHits/ClusterMapMC
+    std::map<unsigned long, std::vector<MCHit>> fWaveformHitsPE;
+    std::map<double, std::vector<MCHit>> fWaveformClustersPE;
     bool hasGenie;
 
     int ANNIEEventTreeMakerVerbosity = 0;
