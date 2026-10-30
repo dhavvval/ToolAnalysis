@@ -1,0 +1,12 @@
+verbosity 0
+
+UseLEDWaveforms 0
+
+PulseFindingApproach threshold
+PulseWindowType Fixed_2023_Gains
+DefaultADCThreshold 7
+DefaultThresholdType relative
+
+EventBuilding 0
+MCWaveforms 1
+BuildWaveformMCHits 1
