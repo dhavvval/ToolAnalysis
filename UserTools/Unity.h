@@ -204,3 +204,4 @@
 #include "ClusterSearcher.h"
 #include "NeutronCheck.h"
 #include "PrintADCTraces.h"
+#include "DummyTriggerHitsOverlay.h"
