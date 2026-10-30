@@ -39,6 +39,7 @@ T0Offset 25         # A timing offset (in clock ticks) that can be used to vary 
                     # (The T0offset set to 25 shifts the sampling to avoid fit blowups, then the code shifts it back by 25. 25 is therefore the "default" and is recommended.)
 TimeShift 0         # This is an artificial time shift to the MC Hits [ns]
                     # (as WCSim simulates particles from t0 = 0, this can be used as a toggle on the "trigger time")
+                    # (the 0-70 us readout cut is applied after the shift; AmBe source data: 1074 puts MC in the data clock)
 MakeDebugFile 0     # Produce a root file containing all the simulated waveforms
 ```
 

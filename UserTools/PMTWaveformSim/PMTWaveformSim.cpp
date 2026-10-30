@@ -167,11 +167,12 @@ bool PMTWaveformSim::Execute()
       MCHit& mcHit = mcHits[i_hit];
       // skip negative hit times, what does that even mean if we're not using the smeared digit time?
       // skip hit times past 70 us since that's our longest readout
-      if (mcHit.GetTime() < 0) continue;
-      if (mcHit.GetTime() > 70000) continue;
+      // both cuts act on the shifted time, i.e. on the readout window the waveform is drawn in
+      double hit_t0 = mcHit.GetTime() + fTimeShift;
+      if (hit_t0 < 0) continue;
+      if (hit_t0 > 70000) continue;
 
       // Grab the hit time (also converted to clock ticks) and the charge
-      double hit_t0 = mcHit.GetTime() + fTimeShift;
       double hit_charge = mcHit.GetCharge();
       const std::vector<int> directParentTrackIDs = ParentTrackIDs(mcHit.GetDirectParents());
       const std::vector<int> primaryParentTrackIDs = ParentTrackIDs(mcHit.GetParents());
